@@ -5,3 +5,6 @@ numpy==1.23.5
 tqdm==4.64.1
 scipy==1.9.3
 networkx==2.8.8
+jupyter
+torch_geometric==2.2.0
+ogb
