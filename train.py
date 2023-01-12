@@ -10,8 +10,9 @@ import torch.optim as optim
 from tqdm import tqdm
 
 from models import GMLP
-from utils import load_citation, accuracy, get_A_r
+from utils import accuracy, get_A_r, load_dataset
 import warnings
+
 warnings.filterwarnings('ignore')
 
 # Settings
@@ -42,20 +43,18 @@ parser.add_argument('--tau', type=float, default=1.0,
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
-## get data
-adj, features, labels, idx_train, idx_val, idx_test = load_citation(args.data, 'AugNormAdj', True)
+# get data
+adj, features, labels, idx_train, idx_val, idx_test = load_dataset(args.data, 'AugNormAdj', args.cuda)
 adj_label = get_A_r(adj, args.order)
 
-
-## Model and optimizer
+# Model and optimizer
 model = GMLP(nfeat=features.shape[1],
-            nhid=args.hidden,
-            nclass=labels.max().item() + 1,
-            dropout=args.dropout,
-            )
+             nhid=args.hidden,
+             nclass=labels.max().item() + 1,
+             dropout=args.dropout,
+             )
 optimizer = optim.Adam(model.parameters(),
                        lr=args.lr, weight_decay=args.weight_decay)
-
 
 if args.cuda:
     model.cuda()
@@ -66,15 +65,16 @@ if args.cuda:
     idx_test = idx_test.cuda()
 
 
-def Ncontrast(x_dis, adj_label, tau = 1):
+def Ncontrast(x_dis, adj_label, tau=1):
     """
     compute the Ncontrast loss
     """
-    x_dis = torch.exp( tau * x_dis)
+    x_dis = torch.exp(tau * x_dis)
     x_dis_sum = torch.sum(x_dis, 1)
-    x_dis_sum_pos = torch.sum(x_dis*adj_label, 1)
-    loss = -torch.log(x_dis_sum_pos * (x_dis_sum**(-1))+1e-8).mean()
+    x_dis_sum_pos = torch.sum(x_dis * adj_label, 1)
+    loss = -torch.log(x_dis_sum_pos * (x_dis_sum ** (-1)) + 1e-8).mean()
     return loss
+
 
 def get_batch(batch_size):
     """
@@ -83,8 +83,9 @@ def get_batch(batch_size):
     rand_indx = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), batch_size)).type(torch.long).cuda()
     rand_indx[0:len(idx_train)] = idx_train
     features_batch = features[rand_indx]
-    adj_label_batch = adj_label[rand_indx,:][:,rand_indx]
+    adj_label_batch = adj_label[rand_indx, :][:, rand_indx]
     return features_batch, adj_label_batch
+
 
 def train():
     features_batch, adj_label_batch = get_batch(batch_size=args.batch_size)
@@ -92,12 +93,13 @@ def train():
     optimizer.zero_grad()
     output, x_dis = model(features_batch)
     loss_train_class = F.nll_loss(output[idx_train], labels[idx_train])
-    loss_Ncontrast = Ncontrast(x_dis, adj_label_batch, tau = args.tau)
+    loss_Ncontrast = Ncontrast(x_dis, adj_label_batch, tau=args.tau)
     loss_train = loss_train_class + loss_Ncontrast * args.alpha
     acc_train = accuracy(output[idx_train], labels[idx_train])
     loss_train.backward()
     optimizer.step()
-    return 
+    return
+
 
 def test():
     model.eval()
@@ -107,9 +109,10 @@ def test():
     acc_val = accuracy(output[idx_val], labels[idx_val])
     return acc_test, acc_val
 
+
 best_accu = 0
 best_val_acc = 0
-print('\n'+'training configs', args)
+print('\n' + 'training configs', args)
 for epoch in tqdm(range(args.epochs)):
     train()
     tmp_test_acc, val_acc = test()
@@ -117,18 +120,15 @@ for epoch in tqdm(range(args.epochs)):
         best_val_acc = val_acc
         test_acc = tmp_test_acc
 
-
-log_file = open(r"log.txt", encoding="utf-8",mode="a+")  
-with log_file as file_to_be_write:  
-    print('tau', 'order', \
-            'batch_size', 'hidden', \
-                'alpha', 'lr', \
-                    'weight_decay', 'data', \
-                        'test_acc', file=file_to_be_write, sep=',')
-    print(args.tau, args.order, \
-         args.batch_size, args.hidden, \
-             args.alpha, args.lr, \
-                 args.weight_decay, args.data, \
-                     test_acc.item(), file=file_to_be_write, sep=',')
-
-
+log_file = open(r"log.txt", encoding="utf-8", mode="a+")
+with log_file as file_to_be_write:
+    print('tau', 'order',
+          'batch_size', 'hidden',
+          'alpha', 'lr',
+          'weight_decay', 'data',
+          'test_acc', file=file_to_be_write, sep=',')
+    print(args.tau, args.order,
+          args.batch_size, args.hidden,
+          args.alpha, args.lr,
+          args.weight_decay, args.data,
+          test_acc.item(), file=file_to_be_write, sep=',')
