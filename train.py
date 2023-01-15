@@ -64,6 +64,7 @@ model = GMLP(nfeat=features.shape[1],
              nhid=args.hidden,
              nclass=labels.max().item() + 1,
              dropout=args.dropout,
+             cuda=args.cuda
              )
 optimizer = optim.Adam(model.parameters(),
                        lr=args.lr, weight_decay=args.weight_decay)
@@ -90,7 +91,7 @@ def Ncontrast(x_dis, adj_label, tau=1):
 
 def train():
     features_batch, adj_label_batch = sample.get_batch(adj_label, idx_train, features, batch_size=args.batch_size,
-                                                       sampler=args.sampler)
+                                                       sampler=args.sampler, cuda=args.cuda)
     model.train()
     optimizer.zero_grad()
     output, x_dis = model(features_batch)
