@@ -9,6 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
 
+import sample
 from models import GMLP
 from utils import accuracy, get_A_r, load_dataset
 import warnings
@@ -39,6 +40,17 @@ parser.add_argument('--order', type=int, default=2,
                     help='to compute order-th power of adj')
 parser.add_argument('--tau', type=float, default=1.0,
                     help='temperature for Ncontrast loss')
+# TODO adapt to all that are actually implemented and add description to README
+parser.add_argument('--sampler', type=str, choices=['random_batch', 'random_pagerank', 'random_degree', 'rank_degree',
+                                                    'list', 'negative', 'random_edge', 'random_node_edge',
+                                                    'hybrid_edge', 'fixed_size_neighbor', 'random_node_neighbor',
+                                                    'random_walk', 'random_jump', 'forest_fire', 'frontier', 'snowball'],
+                    default='random_batch',
+                    help="sampler to use to generate a batch. Possible options are: 'random_batch', "
+                         "'random_pagerank', 'random_degree', 'rank_degree', 'list', 'negative', 'random_edge', "
+                         "'random_node_edge', 'hybrid_edge', 'fixed_size_neighbor', 'random_node_neighbor', "
+                         "'random_walk', 'random_jump', 'forest_fire', 'frontier', 'snowball'. See the README for more "
+                         "information")
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -76,19 +88,9 @@ def Ncontrast(x_dis, adj_label, tau=1):
     return loss
 
 
-def get_batch(batch_size):
-    """
-    get a batch of feature & adjacency matrix
-    """
-    rand_indx = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), batch_size)).type(torch.long).cuda()
-    rand_indx[0:len(idx_train)] = idx_train
-    features_batch = features[rand_indx]
-    adj_label_batch = adj_label[rand_indx, :][:, rand_indx]
-    return features_batch, adj_label_batch
-
-
 def train():
-    features_batch, adj_label_batch = get_batch(batch_size=args.batch_size)
+    features_batch, adj_label_batch = sample.get_batch(adj_label, idx_train, features, batch_size=args.batch_size,
+                                                       sampler=args.sampler)
     model.train()
     optimizer.zero_grad()
     output, x_dis = model(features_batch)
