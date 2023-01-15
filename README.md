@@ -15,6 +15,18 @@ For the detail, please refer to our paper: https://arxiv.org/abs/2106.04051
   * PyTorch **1.7**
   * Python **3.7**
 
+## Installation
+First install PyTorch and PyTorch-Geometric (PyG).
+
+Install the correct **PyTorch** version for your system from [the official website](https://pytorch.org/get-started/locally/).
+Then install the corresponding **PyG** version (correct PyTorch version and same CUDA version) from [here](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html).
+
+After this is done install the remaining requirements from the `requirements.txt` by running:
+```shell
+pip install -r requirements.txt
+```
+
+
 ## Usage
 
 ```

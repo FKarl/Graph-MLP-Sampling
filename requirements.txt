@@ -1,10 +1,6 @@
-torch
-torchvision
-torchaudio
 numpy
 tqdm
 scipy
 networkx
 jupyter
-torch_geometric
 ogb
