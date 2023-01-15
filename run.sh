@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --ntasks=1
 #SBATCH --time=120:00
-#SBATCH --gres=gpu:2
+#SBATCH --gres=gpu:8
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=tobias.kalmbach@uni-ulm.de
 
