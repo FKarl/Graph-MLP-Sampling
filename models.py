@@ -51,7 +51,7 @@ class GMLP(nn.Module):
         self.nhid = nhid
         self.mlp = Mlp(nfeat, self.nhid, dropout)
         self.classifier = Linear(self.nhid, nclass)
-        self.cuda = cuda
+        self.use_cuda = cuda
 
     def forward(self, x):
         x = self.mlp(x)
@@ -60,7 +60,7 @@ class GMLP(nn.Module):
         Z = x
 
         if self.training:
-            x_dis = get_feature_dis(Z, self.cuda)
+            x_dis = get_feature_dis(Z, self.use_cuda)
 
         class_feature = self.classifier(feature_cls)
         class_logits = F.log_softmax(class_feature, dim=1)
