@@ -40,14 +40,15 @@ def get_batch(adj_label, idx_train, features, batch_size=2000, sampler='random_b
 def random_batch(adj_label, idx_train, features, batch_size, cuda):
     """
         get a batch of feature & adjacency matrix
-        """
+    """
     rand_indx = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), batch_size)).type(torch.long)
     if cuda:
         rand_indx = rand_indx.cuda()
     rand_indx[0:len(idx_train)] = idx_train
+    new_idx = list(range(0, len(idx_train)))
     features_batch = features[rand_indx]
     adj_label_batch = adj_label[rand_indx, :][:, rand_indx]
-    return features_batch, adj_label_batch
+    return features_batch, adj_label_batch, new_idx
 
 
 def random_pagerank(adj_label, idx_train, features, batch_size, cuda):

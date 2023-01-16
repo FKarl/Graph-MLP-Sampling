@@ -30,8 +30,13 @@ parser.add_argument('--hidden', type=int, default=256,
                     help='Number of hidden units.')
 parser.add_argument('--dropout', type=float, default=0.6,
                     help='Dropout rate (1 - keep probability).')
-parser.add_argument('--data', type=str, default='cora',
-                    help='dataset to be used')
+# TODO adapt to all that are actually implemented and add description to README
+parser.add_argument('--data', type=str,
+                    choices=['cora', 'citeseer', 'pubmed', 'reddit', 'ogbn-products', 'ogbn-arxiv', 'facebook'],
+                    default='cora',
+                    help="dataset to be used. Possible options are: 'cora', 'citeseer', 'pubmed', 'reddit', "
+                         "'ogbn-products', 'ogbn-arxiv', 'facebook'. See the README for more "
+                         "information")
 parser.add_argument('--alpha', type=float, default=2.0,
                     help='To control the ratio of Ncontrast loss')
 parser.add_argument('--batch_size', type=int, default=2048,
@@ -44,7 +49,8 @@ parser.add_argument('--tau', type=float, default=1.0,
 parser.add_argument('--sampler', type=str, choices=['random_batch', 'random_pagerank', 'random_degree', 'rank_degree',
                                                     'list', 'negative', 'random_edge', 'random_node_edge',
                                                     'hybrid_edge', 'fixed_size_neighbor', 'random_node_neighbor',
-                                                    'random_walk', 'random_jump', 'forest_fire', 'frontier', 'snowball'],
+                                                    'random_walk', 'random_jump', 'forest_fire', 'frontier',
+                                                    'snowball'],
                     default='random_batch',
                     help="sampler to use to generate a batch. Possible options are: 'random_batch', "
                          "'random_pagerank', 'random_degree', 'rank_degree', 'list', 'negative', 'random_edge', "
@@ -90,15 +96,16 @@ def Ncontrast(x_dis, adj_label, tau=1):
 
 
 def train():
-    features_batch, adj_label_batch = sample.get_batch(adj_label, idx_train, features, batch_size=args.batch_size,
-                                                       sampler=args.sampler, cuda=args.cuda)
+    features_batch, adj_label_batch, new_idx = sample.get_batch(adj_label, idx_train, features,
+                                                                batch_size=args.batch_size,
+                                                                sampler=args.sampler, cuda=args.cuda)
     model.train()
     optimizer.zero_grad()
     output, x_dis = model(features_batch)
-    loss_train_class = F.nll_loss(output[idx_train], labels[idx_train])
+    loss_train_class = F.nll_loss(output[new_idx], labels[idx_train])
     loss_Ncontrast = Ncontrast(x_dis, adj_label_batch, tau=args.tau)
     loss_train = loss_train_class + loss_Ncontrast * args.alpha
-    acc_train = accuracy(output[idx_train], labels[idx_train])
+    acc_train = accuracy(output[new_idx], labels[idx_train])
     loss_train.backward()
     optimizer.step()
     return

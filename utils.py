@@ -95,7 +95,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         dataset = FacebookPagePage(root='dataset/FacebookPagePage')
 
         split = dataset.get(0)
-        transform = RandomNodeSplit(split='train_rest')
+        transform = RandomNodeSplit(split='test_rest')
 
         transform(split)
 
