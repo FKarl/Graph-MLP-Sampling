@@ -59,5 +59,5 @@ if __name__ == "__main__":
     calculate_stats(Reddit(root='dataset/Reddit')[0])
 
     # Facebook:
-    print("Reddit")
+    print("Facebook")
     calculate_stats(FacebookPagePage(root='dataset/FacebookPagePage')[0])
