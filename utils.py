@@ -127,4 +127,4 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         idx_val = idx_val.cuda()
         idx_test = idx_test.cuda()
 
-    return adj, features, labels, idx_train, idx_val, idx_test
+    return adj, features, labels, idx_train, idx_val, idx_test, split.edge_index

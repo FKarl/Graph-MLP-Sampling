@@ -62,7 +62,7 @@ args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
 # get data
-adj, features, labels, idx_train, idx_val, idx_test = load_dataset(args.data, 'AugNormAdj', args.cuda)
+adj, features, labels, idx_train, idx_val, idx_test, edge_index = load_dataset(args.data, 'AugNormAdj', args.cuda)
 adj_label = get_A_r(adj, args.order)
 
 # Model and optimizer
@@ -96,7 +96,7 @@ def Ncontrast(x_dis, adj_label, tau=1):
 
 
 def train():
-    features_batch, adj_label_batch, new_idx = sample.get_batch(adj_label, idx_train, features,
+    features_batch, adj_label_batch, new_idx = sample.get_batch(adj_label, idx_train, features, edge_index,
                                                                 batch_size=args.batch_size,
                                                                 sampler=args.sampler, cuda=args.cuda)
     model.train()
