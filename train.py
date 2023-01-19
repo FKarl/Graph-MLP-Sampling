@@ -16,8 +16,6 @@ import warnings
 
 import wandb
 
-wandb.init(project="graph-mlp", entity="graph-mlp-sampling")
-
 warnings.filterwarnings('ignore')
 
 # Settings
@@ -65,6 +63,9 @@ parser.add_argument('--sampler', type=str, choices=['random_batch', 'random_page
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
+# Setup weights and biases
+wandb.init(project="testing-playground", entity="graph-mlp-sampling",
+           name=args.data + "-" + args.sampler + time.strftime("-%d%m%Y_%H%M%S", time.localtime()))
 wandb.config.update(args)
 
 # get data
