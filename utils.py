@@ -60,6 +60,9 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     Load All Datasets.
     """
     dataset_str = dataset_str.lower()
+    if dataset_str in ['reddit', 'ogbn-products', 'ogbn-arxiv'] and cuda:
+        print("WARNING: The selected dataset is very large. It will probably not fit on a GPU. If you have an "
+              "extremely powerful CPU and a lot of memory try adding --no-cuda.")
     if dataset_str in ['cora', 'citeseer', 'pubmed', 'reddit']:
         dataset = None
         if dataset_str in ['cora', 'citeseer', 'pubmed']:
