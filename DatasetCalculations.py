@@ -3,7 +3,7 @@
 
 from ogb.nodeproppred import PygNodePropPredDataset
 from torch_geometric.utils import homophily
-from torch_geometric.datasets import Planetoid, Reddit, FacebookPagePage
+from torch_geometric.datasets import Planetoid, Reddit2, FacebookPagePage
 import networkx as nx
 from torch_geometric.utils import to_networkx
 
@@ -54,9 +54,9 @@ if __name__ == "__main__":
     print("PubMed")
     calculate_stats(Planetoid(root='dataset/Planetoid', name='PubMed')[0])
 
-    # Reddit:
-    print("Reddit")
-    calculate_stats(Reddit(root='dataset/Reddit')[0])
+    # Reddit2:
+    print("Reddit2")
+    calculate_stats(Reddit2(root='dataset/Reddit2')[0])
 
     # Facebook:
     print("Facebook")

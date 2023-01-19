@@ -3,7 +3,7 @@ import torch
 from normalization import fetch_normalization, row_normalize
 
 from ogb.nodeproppred import PygNodePropPredDataset
-from torch_geometric.datasets import Planetoid, Reddit, FacebookPagePage
+from torch_geometric.datasets import Planetoid, Reddit2, FacebookPagePage
 from torch_geometric.utils import mask_to_index, to_scipy_sparse_matrix
 from torch_geometric.transforms import RandomNodeSplit
 
@@ -60,15 +60,15 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     Load All Datasets.
     """
     dataset_str = dataset_str.lower()
-    if dataset_str in ['reddit', 'ogbn-products', 'ogbn-arxiv'] and cuda:
+    if dataset_str in ['reddit2', 'ogbn-products', 'ogbn-arxiv'] and cuda:
         print("WARNING: The selected dataset is very large. It will probably not fit on a GPU. If you have an "
               "extremely powerful CPU and a lot of memory try adding --no-cuda.")
-    if dataset_str in ['cora', 'citeseer', 'pubmed', 'reddit']:
+    if dataset_str in ['cora', 'citeseer', 'pubmed', 'reddit2']:
         dataset = None
         if dataset_str in ['cora', 'citeseer', 'pubmed']:
             dataset = Planetoid(root='dataset/Planetoid', name=dataset_str)
-        elif dataset_str in ['reddit']:
-            dataset = Reddit(root='dataset/Reddit')
+        elif dataset_str in ['reddit2']:
+            dataset = Reddit2(root='dataset/Reddit2')
         split = dataset.get(0)
 
         adj = to_scipy_sparse_matrix(split.edge_index).tocoo().astype(np.float32)
@@ -112,7 +112,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
 
     else:
         raise Exception('Unknown dataset. The following datasets are supported: Cora, Citeseer, PubMed, '
-                        'OGBN-Products, OGBN-Arxiv, Reddit and FacebookPagePage. For more information use the --help '
+                        'OGBN-Products, OGBN-Arxiv, Reddit2 and FacebookPagePage. For more information use the --help '
                         'option.')
 
     # porting to pytorch

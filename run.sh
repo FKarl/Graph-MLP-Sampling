@@ -20,8 +20,8 @@ python3 train.py --epochs=1000 --lr=0.1 --weight_decay=5e-3 --data=ogbn-arxiv --
 ## ogbn-products
 # python3 train.py --epochs=1000 --lr=0.1 --weight_decay=5e-3 --data=ogbn-products --alpha=100 --hidden=256 --batch_size=2000 --order=2 --tau=1
 
-## Reddit
-# python3 train.py --epochs=1000 --lr=0.1 --weight_decay=5e-3 --data=reddit --alpha=100 --hidden=256 --batch_size=2000 --order=2 --tau=1
+## Reddit2
+# python3 train.py --epochs=1000 --lr=0.1 --weight_decay=5e-3 --data=reddit2 --alpha=100 --hidden=256 --batch_size=2000 --order=2 --tau=1
 
 ## FacebookPagePage
 python3 train.py --epochs=1000 --lr=0.1 --weight_decay=5e-3 --data=facebook --alpha=100 --hidden=256 --batch_size=2000 --order=2 --tau=1
