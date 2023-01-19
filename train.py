@@ -14,6 +14,10 @@ from models import GMLP
 from utils import accuracy, get_A_r, load_dataset
 import warnings
 
+import wandb
+
+wandb.init(project="graph-mlp", entity="graph-mlp-sampling")
+
 warnings.filterwarnings('ignore')
 
 # Settings
@@ -61,6 +65,8 @@ parser.add_argument('--sampler', type=str, choices=['random_batch', 'random_page
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
+wandb.config.update(args)
+
 # get data
 adj, features, labels, idx_train, idx_val, idx_test, edge_index = load_dataset(args.data, 'AugNormAdj', args.cuda)
 adj_label = get_A_r(adj, args.order)
@@ -106,6 +112,8 @@ def train():
     loss_Ncontrast = Ncontrast(x_dis, adj_label_batch, tau=args.tau)
     loss_train = loss_train_class + loss_Ncontrast * args.alpha
     acc_train = accuracy(output[new_idx], labels[idx_train])
+    wandb.log({"acc_train": acc_train, "loss_train_class": loss_train_class, "loss_Ncontrast": loss_Ncontrast,
+               "loss_train": loss_train})
     loss_train.backward()
     optimizer.step()
     return
@@ -117,6 +125,7 @@ def test():
     loss_test = F.nll_loss(output[idx_test], labels[idx_test])
     acc_test = accuracy(output[idx_test], labels[idx_test])
     acc_val = accuracy(output[idx_val], labels[idx_val])
+    wandb.log({"acc_test": acc_test, "loss_test": loss_test, "acc_val": acc_val})
     return acc_test, acc_val
 
 
