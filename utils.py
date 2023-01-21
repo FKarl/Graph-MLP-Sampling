@@ -36,7 +36,7 @@ def parse_index_file(filename):
     return index
 
 
-def preprocess_citation(adj, normalization="FirstOrderGCN", features=None):
+def preprocess_dataset(adj, normalization="FirstOrderGCN", features=None):
     adj_normalizer = fetch_normalization(normalization)
 
     adj = adj_normalizer(adj)
@@ -72,38 +72,36 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         split = dataset.get(0)
 
         adj = to_scipy_sparse_matrix(split.edge_index).tocoo().astype(np.float32)
-
         features = split.x
         labels = split.y
         idx_train = mask_to_index(split.train_mask)
         idx_val = mask_to_index(split.val_mask)
         idx_test = mask_to_index(split.test_mask)
 
-        adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
-
-        adj, _ = preprocess_citation(adj, normalization=normalization)
     elif dataset_str in ['ogbn-products', 'ogbn-arxiv']:
+        print("WARNING: We do not use the default split for OGB datasets. We use a random split of 80/500/rest nodes "
+              "for train/validation/test splits.")
         dataset = PygNodePropPredDataset(name=dataset_str)
-
         split = dataset.get(0)
 
         adj = to_scipy_sparse_matrix(split.edge_index).tocoo().astype(np.float32)
-
         features = split.x
         labels = split.y
         split_idx = dataset.get_idx_split()
         idx_train, idx_val, idx_test = split_idx["train"], split_idx["valid"], split_idx["test"]
+        nodes = torch.cat([idx_train, idx_val, idx_test], -1)
+        # TODO Just a random shuffle. Maybe do something else?
+        nodes = nodes[torch.randperm(len(nodes))]
+        # TODO same split as RandomNodeSplit with 'test_rest'. Also not best solution, I guess
+        idx_train, idx_val, idx_test = torch.tensor_split(nodes, [80, 580])
 
     elif dataset_str == 'facebook':
         dataset = FacebookPagePage(root='dataset/FacebookPagePage')
-
         split = dataset.get(0)
         transform = RandomNodeSplit(split='test_rest')
-
         transform(split)
 
         adj = to_scipy_sparse_matrix(split.edge_index).tocoo().astype(np.float32)
-
         features = split.x
         labels = split.y
         idx_train = mask_to_index(split.train_mask)
@@ -115,6 +113,9 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
                         'OGBN-Products, OGBN-Arxiv, Reddit2 and FacebookPagePage. For more information use the --help '
                         'option.')
 
+    adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
+
+    adj, _ = preprocess_dataset(adj, normalization=normalization)
     # porting to pytorch
     labels = torch.LongTensor(labels)
     adj = sparse_mx_to_torch_sparse_tensor(adj).float()
