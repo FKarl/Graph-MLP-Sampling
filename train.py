@@ -16,6 +16,9 @@ import warnings
 
 import wandb
 
+WANDB_ENTITY = "graph-mlp-sampling"
+WANDB_PROJECT = "graph-mlp"
+
 warnings.filterwarnings('ignore')
 
 # Settings
@@ -59,14 +62,17 @@ parser.add_argument('--sampler', type=str, choices=['random_batch', 'random_page
                          "'random_node_edge', 'hybrid_edge', 'fixed_size_neighbor', 'random_node_neighbor', "
                          "'random_walk', 'random_jump', 'forest_fire', 'frontier', 'snowball'. See the README for more "
                          "information")
+parser.add_argument('--no-wandb', action='store_true', default=False,
+                    help='Disables Weights & Biases logging.')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
 # Setup weights and biases
-wandb.init(project="graph-mlp", entity="graph-mlp-sampling",
-           name=args.data + "-" + args.sampler + time.strftime("-%d%m%Y_%H%M%S", time.localtime()))
-wandb.config.update(args)
+if not args.no_wandb:
+    wandb.init(project=WANDB_PROJECT, entity=WANDB_ENTITY,
+               name=args.data + "-" + args.sampler + time.strftime("-%d%m%Y_%H%M%S", time.localtime()))
+    wandb.config.update(args)
 
 # get data
 adj, features, labels, idx_train, idx_val, idx_test, edge_index = load_dataset(args.data, 'AugNormAdj', args.cuda)
@@ -113,8 +119,9 @@ def train():
     loss_Ncontrast = Ncontrast(x_dis, adj_label_batch, tau=args.tau)
     loss_train = loss_train_class + loss_Ncontrast * args.alpha
     acc_train = accuracy(output[new_idx], labels[idx_train])
-    wandb.log({"acc_train": acc_train, "loss_train_class": loss_train_class, "loss_Ncontrast": loss_Ncontrast,
-               "loss_train": loss_train})
+    if not args.no_wandb:
+        wandb.log({"acc_train": acc_train, "loss_train_class": loss_train_class, "loss_Ncontrast": loss_Ncontrast,
+                   "loss_train": loss_train})
     loss_train.backward()
     optimizer.step()
     return
@@ -126,7 +133,8 @@ def test():
     loss_test = F.nll_loss(output[idx_test], labels[idx_test])
     acc_test = accuracy(output[idx_test], labels[idx_test])
     acc_val = accuracy(output[idx_val], labels[idx_val])
-    wandb.log({"acc_test": acc_test, "loss_test": loss_test, "acc_val": acc_val})
+    if not args.no_wandb:
+        wandb.log({"acc_test": acc_test, "loss_test": loss_test, "acc_val": acc_val})
     return acc_test, acc_val
 
 
