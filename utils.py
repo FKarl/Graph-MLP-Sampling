@@ -125,7 +125,8 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
 
     if cuda:
         features = features.cuda()
-        adj = adj.cuda()
+        if dataset_str not in ['reddit2', 'ogbn-products', 'ogbn-arxiv']:
+            adj = adj.cuda()
         labels = labels.cuda()
         idx_train = idx_train.cuda()
         idx_val = idx_val.cuda()
