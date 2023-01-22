@@ -35,13 +35,16 @@ This is a list of datasets implemented in this extension. For the `--data` argum
 
 > Note: OGBN-arxiv, OGBN-products and Reddit2 have many nodes. Make sure you have enough resources to run Graph-MLP on these datasets. See the table below for more information.
 
-|          |  Cora | CiteSeer | Pubmed | ogbn-arxiv |    Reddit2 | Facebook |
-|---------:|------:|---------:|-------:|-----------:|-----------:|---------:|
-|    Nodes | 2,708 |    3,327 | 19,717 |    169,343 |    232,965 |   22,470 |
-|    Edges | 5,429 |    4,732 | 44,338 |  1,166,243 | 23,213,838 |  171,002 |
-|  Classes |     7 |        6 |      3 |         40 |         41 |        4 |
-| Features | 1,433 |    3,703 |    500 |        128 |        602 |   14,000 |
+|          |  Cora | CiteSeer | Pubmed | ogbn-arxiv | ogbn-products |    Reddit2 | Facebook |
+|---------:|------:|---------:|-------:|-----------:|--------------:|-----------:|---------:|
+|    Nodes | 2,708 |    3,327 | 19,717 |    169,343 |     2,449,029 |    232,965 |   22,470 |
+|    Edges | 5,429 |    4,732 | 44,338 |  1,166,243 |    61,859,140 | 23,213,838 |  171,002 |
+|  Classes |     7 |        6 |      3 |         40 |            47 |         41 |        4 |
+| Features | 1,433 |    3,703 |    500 |        128 |           100 |        602 |   14,000 |
 
+
+## Samplers
+See [Sampling.md](Sampling.md).
 
 ## Usage
 
