@@ -63,12 +63,8 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     if dataset_str in ['reddit2', 'ogbn-products', 'ogbn-arxiv'] and cuda:
         print("WARNING: The selected dataset is very large. It will probably not fit on a GPU. If you have an "
               "extremely powerful CPU and a lot of memory try adding --no-cuda.")
-    if dataset_str in ['cora', 'citeseer', 'pubmed', 'reddit2']:
-        dataset = None
-        if dataset_str in ['cora', 'citeseer', 'pubmed']:
-            dataset = Planetoid(root='dataset/Planetoid', name=dataset_str)
-        elif dataset_str in ['reddit2']:
-            dataset = Reddit2(root='dataset/Reddit2')
+    if dataset_str in ['cora', 'citeseer', 'pubmed']:
+        dataset = Planetoid(root='dataset/Planetoid', name=dataset_str)
         split = dataset.get(0)
 
         adj = to_scipy_sparse_matrix(split.edge_index).tocoo().astype(np.float32)
@@ -95,8 +91,12 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         # TODO same split as RandomNodeSplit with 'test_rest'. Also not best solution, I guess
         idx_train, idx_val, idx_test = torch.tensor_split(nodes, [80, 580])
 
-    elif dataset_str == 'facebook':
-        dataset = FacebookPagePage(root='dataset/FacebookPagePage')
+    elif dataset_str in ['facebook', 'reddit2']:
+        dataset = None
+        if dataset_str in ['facebook']:
+            dataset = FacebookPagePage(root='dataset/FacebookPagePage')
+        elif dataset_str in ['reddit2']:
+            dataset = Reddit2(root='dataset/Reddit2')
         split = dataset.get(0)
         transform = RandomNodeSplit(split='test_rest')
         transform(split)
