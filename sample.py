@@ -7,6 +7,14 @@ import torch_geometric
 
 
 def get_batch(adj_label, idx_train, features, edge_index, batch_size=2000, sampler='random_batch', cuda=True):
+
+    # if batch_size is smaller than len(idx_train), remove everything except idx_train
+    if batch_size < len(idx_train):
+        adj_label = adj_label[idx_train, :][:, idx_train]
+        features = features[idx_train]
+        edge_index = edge_index[:, edge_index[0].isin(idx_train) & edge_index[1].isin(idx_train)]
+        idx_train = list(range(0, len(idx_train)))
+
     if sampler == 'random_batch':
         return random_batch(adj_label, idx_train, features, batch_size, cuda)
     elif sampler == 'random_pagerank':
@@ -41,6 +49,17 @@ def get_batch(adj_label, idx_train, features, edge_index, batch_size=2000, sampl
         return snowball(adj_label, idx_train, features, batch_size, cuda)
 
 
+def idx_to_adj(node_index, idx_train, adj_label, features, batch_size):
+    if len(idx_train) < batch_size:
+        node_index[0:len(idx_train)] = idx_train
+        new_idx = list(range(0, len(idx_train)))
+    else:
+        new_idx = list(range(0, batch_size))
+    features_batch = features[node_index]
+    adj_label_batch = adj_label[node_index, :][:, node_index]
+    return features_batch, adj_label_batch, new_idx
+
+
 def random_batch(adj_label, idx_train, features, batch_size, cuda):
     """
         get a batch of feature & adjacency matrix
@@ -49,10 +68,8 @@ def random_batch(adj_label, idx_train, features, batch_size, cuda):
     if cuda:
         rand_indx = rand_indx.cuda()
     rand_indx[0:len(idx_train)] = idx_train
-    new_idx = list(range(0, len(idx_train)))
-    features_batch = features[rand_indx]
-    adj_label_batch = adj_label[rand_indx, :][:, rand_indx]
-    return features_batch, adj_label_batch, new_idx
+
+    return idx_to_adj(rand_indx, idx_train, adj_label, features, batch_size)
 
 
 def random_pagerank(adj_label, idx_train, features, batch_size, cuda):
@@ -84,37 +101,8 @@ def negative_sampling(edge_index, adj_label, idx_train, features, batch_size, cu
     chosen_edges = torch.tensor(np.random.choice(np.arange(new_edge_index.shape[1]), batch_size)).type(torch.long).to(
         device)
     chosen_nodes = torch.unique(new_edge_index[:, chosen_edges]).to(device)
-    features_batch = features[chosen_nodes]
-    adj_label_batch = adj_label[chosen_nodes, :][:, chosen_nodes]
-    # TODO: new_idx
-    new_idx = list(range(0, len(idx_train)))
-    return features_batch, adj_label_batch, new_idx
 
-
-def old_negative_sampling(edge_index, adj_label, idx_train, features, batch_size, cuda):
-    # new edge index = all not existing edges
-    new_edge_index = torch_geometric.utils.negative_sampling(edge_index)
-    # add pairs of nodes to the batch that are connected in the new edge index
-    pairs = list(zip(new_edge_index[0], new_edge_index[1]))
-    # choose pairwise random pairs until batch size is reached
-    chosen_nodes = set()
-    while len(chosen_nodes) < batch_size:
-        # select random pair
-        if len(pairs) == 0:
-            logging.info("No more pairs available")
-            break
-        pair = random.choice(list(pairs))
-        pairs.remove(pair)
-        chosen_nodes.add(pair[0])
-        chosen_nodes.add(pair[1])
-    chosen_nodes = torch.tensor(list(chosen_nodes))
-    if cuda:
-        chosen_nodes = chosen_nodes.cuda()
-    features_batch = features[chosen_nodes]
-    adj_label_batch = adj_label[chosen_nodes, :][:, chosen_nodes]
-    # TODO: new_idx
-    new_idx = list(range(0, len(idx_train)))
-    return features_batch, adj_label_batch, new_idx
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, batch_size)
 
 
 def random_edge(adj_label, idx_train, features, batch_size, cuda):
