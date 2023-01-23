@@ -1,7 +1,8 @@
 #!/bin/bash
 #SBATCH --ntasks=1
 #SBATCH --time=120:00
-#SBATCH --gres=gpu:8
+#SBATCH --gres=gpu:2
+#SBATCH --partion=gpu_4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=tobias.kalmbach@uni-ulm.de
 
@@ -15,7 +16,7 @@ python3 train.py --epochs=1000 --lr=0.001 --weight_decay=5e-3 --data=citeseer --
 python3 train.py --epochs=1000 --lr=0.1 --weight_decay=5e-3 --data=pubmed --alpha=100 --hidden=256 --batch_size=2000 --order=2 --tau=1
 
 ## ogbn-arxiv
-python3 train.py --epochs=1000 --lr=0.1 --weight_decay=5e-3 --data=ogbn-arxiv --alpha=100 --hidden=256 --batch_size=2000 --order=2 --tau=1
+# python3 train.py --epochs=1000 --lr=0.1 --weight_decay=5e-3 --data=ogbn-arxiv --alpha=100 --hidden=256 --batch_size=2000 --order=2 --tau=1
 
 ## ogbn-products
 # python3 train.py --epochs=1000 --lr=0.1 --weight_decay=5e-3 --data=ogbn-products --alpha=100 --hidden=256 --batch_size=2000 --order=2 --tau=1
