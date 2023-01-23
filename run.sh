@@ -2,7 +2,7 @@
 #SBATCH --ntasks=1
 #SBATCH --time=120:00
 #SBATCH --gres=gpu:2
-#SBATCH --partion=gpu_4
+#SBATCH --partition=gpu_4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=tobias.kalmbach@uni-ulm.de
 
