@@ -78,6 +78,7 @@ if not args.no_wandb:
 adj, features, labels, idx_train, idx_val, idx_test, edge_index = load_dataset(args.data, 'AugNormAdj', args.cuda)
 print("DEBUG: Dataset loaded")
 adj_label = get_A_r(adj, args.order)
+torch.save(adj_label, 'adj_label_' + args.data + '.pt')
 print("DEBUG: Finished A_r calc")
 
 # Model and optimizer
