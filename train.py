@@ -76,7 +76,9 @@ if not args.no_wandb:
 
 # get data
 adj, features, labels, idx_train, idx_val, idx_test, edge_index = load_dataset(args.data, 'AugNormAdj', args.cuda)
+print("DEBUG: Dataset loaded")
 adj_label = get_A_r(adj, args.order)
+print("DEBUG: Finished A_r calc")
 
 # Model and optimizer
 model = GMLP(nfeat=features.shape[1],

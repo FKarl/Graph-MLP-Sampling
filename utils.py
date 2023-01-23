@@ -112,10 +112,12 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         raise Exception('Unknown dataset. The following datasets are supported: Cora, Citeseer, PubMed, '
                         'OGBN-Products, OGBN-Arxiv, Reddit2 and FacebookPagePage. For more information use the --help '
                         'option.')
-
+    print('DEBUG: Finished creating dataset')
     adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
+    print('DEBUG: Finished creating dataset')
 
     adj, _ = preprocess_dataset(adj, normalization=normalization)
+    print('DEBUG: Finished preprocessing dataset')
     # porting to pytorch
     labels = torch.LongTensor(labels)
     adj = sparse_mx_to_torch_sparse_tensor(adj).float()
@@ -123,6 +125,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     idx_val = torch.LongTensor(idx_val)
     idx_test = torch.LongTensor(idx_test)
 
+    print('DEBUG: Finished converting to pytorch')
     if cuda:
         features = features.cuda()
         if dataset_str not in ['reddit2', 'ogbn-products', 'ogbn-arxiv']:
