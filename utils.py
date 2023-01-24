@@ -63,8 +63,12 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     if dataset_str in ['reddit2', 'ogbn-products', 'ogbn-arxiv'] and cuda:
         print("WARNING: The selected dataset is very large. It will probably not fit on a GPU. If you have an "
               "extremely powerful CPU and a lot of memory try adding --no-cuda.")
-    if dataset_str in ['cora', 'citeseer', 'pubmed']:
-        dataset = Planetoid(root='dataset/Planetoid', name=dataset_str)
+    if dataset_str in ['cora', 'citeseer', 'pubmed', 'reddit2']:
+        dataset = None
+        if dataset_str in ['cora', 'citeseer', 'pubmed']:
+            dataset = Planetoid(root='dataset/Planetoid', name=dataset_str)
+        elif dataset_str in ['reddit2']:
+            dataset = Reddit2(root='dataset/Reddit2')
         split = dataset.get(0)
 
         adj = to_scipy_sparse_matrix(split.edge_index).tocoo().astype(np.float32)
@@ -75,8 +79,6 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         idx_test = mask_to_index(split.test_mask)
 
     elif dataset_str in ['ogbn-products', 'ogbn-arxiv']:
-        print("WARNING: We do not use the default split for OGB datasets. We use a random split of 80/500/rest nodes "
-              "for train/validation/test splits.")
         dataset = PygNodePropPredDataset(name=dataset_str)
         split = dataset.get(0)
 
@@ -85,18 +87,9 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         labels = split.y
         split_idx = dataset.get_idx_split()
         idx_train, idx_val, idx_test = split_idx["train"], split_idx["valid"], split_idx["test"]
-        nodes = torch.cat([idx_train, idx_val, idx_test], -1)
-        # TODO Just a random shuffle. Maybe do something else?
-        nodes = nodes[torch.randperm(len(nodes))]
-        # TODO same split as RandomNodeSplit with 'test_rest'. Also not best solution, I guess
-        idx_train, idx_val, idx_test = torch.tensor_split(nodes, [80, 580])
 
-    elif dataset_str in ['facebook', 'reddit2']:
-        dataset = None
-        if dataset_str in ['facebook']:
-            dataset = FacebookPagePage(root='dataset/FacebookPagePage')
-        elif dataset_str in ['reddit2']:
-            dataset = Reddit2(root='dataset/Reddit2')
+    elif dataset_str in ['facebook']:
+        dataset = FacebookPagePage(root='dataset/FacebookPagePage')
         split = dataset.get(0)
         transform = RandomNodeSplit(split='test_rest')
         transform(split)
