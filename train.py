@@ -13,6 +13,7 @@ import sample
 from models import GMLP
 from utils import accuracy, get_A_r, load_dataset
 import warnings
+from os.path import exists
 
 import wandb
 
@@ -77,8 +78,11 @@ if not args.no_wandb:
 # get data
 adj, features, labels, idx_train, idx_val, idx_test, edge_index = load_dataset(args.data, 'AugNormAdj', args.cuda)
 print("DEBUG: Dataset loaded")
-adj_label = get_A_r(adj, args.order)
-torch.save(adj_label, 'adj_label_' + args.data + '.pt')
+if exists('adj_label_' + args.data + '.pt'):
+    adj_label = torch.load('adj_label_' + args.data + '.pt')
+else:
+    adj_label = get_A_r(adj, args.order)
+    torch.save(adj_label, 'adj_label_' + args.data + '.pt')
 print("DEBUG: Finished A_r calc")
 
 # Model and optimizer
@@ -112,16 +116,17 @@ def Ncontrast(x_dis, adj_label, tau=1):
 
 
 def train():
-    features_batch, adj_label_batch, new_idx = sample.get_batch(adj_label, idx_train, features, edge_index,
-                                                                batch_size=args.batch_size,
-                                                                sampler=args.sampler, cuda=args.cuda)
+    features_batch, adj_label_batch, labels_batch, new_idx = sample.get_batch(adj_label, idx_train, features,
+                                                                              edge_index, labels,
+                                                                              batch_size=args.batch_size,
+                                                                              sampler=args.sampler, cuda=args.cuda)
     model.train()
     optimizer.zero_grad()
     output, x_dis = model(features_batch)
-    loss_train_class = F.nll_loss(output[new_idx], labels[idx_train])
+    loss_train_class = F.nll_loss(output[new_idx], labels_batch[new_idx])
     loss_Ncontrast = Ncontrast(x_dis, adj_label_batch, tau=args.tau)
     loss_train = loss_train_class + loss_Ncontrast * args.alpha
-    acc_train = accuracy(output[new_idx], labels[idx_train])
+    acc_train = accuracy(output[new_idx], labels_batch[new_idx])
     if not args.no_wandb:
         wandb.log({"acc_train": acc_train, "loss_train_class": loss_train_class, "loss_Ncontrast": loss_Ncontrast,
                    "loss_train": loss_train})
