@@ -125,9 +125,18 @@ def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batc
 
 
 def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
-    # TODO @Fabi
-    pass
-
+    # we select a node uniformly at random together with all of its out-going neighbors.
+    device = torch.device('cuda' if cuda else 'cpu')
+    # empty tensor for new nodes
+    chosen_nodes = torch.tensor([]).type(torch.long).to(device)
+    edge_index = edge_index.to(device)
+    while True:
+        chosen_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
+        outgoing_nodes = edge_index[1][edge_index[0] == chosen_node]
+        chosen_nodes = torch.cat((chosen_nodes, chosen_node, outgoing_nodes)).to(device)
+        if chosen_nodes.shape[0] >= batch_size:
+            break
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
 
 def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
     # TODO @Jan
