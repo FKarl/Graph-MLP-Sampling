@@ -49,8 +49,7 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
 
 
 def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size):
-    # TODO shorten nodes to batch size? Would set a strict upper bound.
-    # node_index = node_index[:batch_size]
+    node_index = node_index[:batch_size]
     if len(idx_train) < batch_size:
         node_index[0:len(idx_train)] = idx_train
         new_idx = list(range(0, len(idx_train)))
@@ -95,27 +94,26 @@ def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_
     new_edge_index = torch_geometric.utils.negative_sampling(edge_index)
     new_edge_index = new_edge_index.to(device)
     # select random batch_size edges
-    chosen_edges = torch.tensor(np.random.choice(np.arange(new_edge_index.shape[1]), batch_size)).type(torch.long).to(
-        device)
+    chosen_edges = torch.tensor(np.random.choice(np.arange(new_edge_index.shape[1]), int(batch_size / 2))).type(
+        torch.long).to(device)
     chosen_nodes = torch.unique(new_edge_index[:, chosen_edges]).to(device)
 
     return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
 
 
 def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    chosen_edges = torch.tensor(np.random.choice(np.arange(edge_index.shape[1]), batch_size)).type(torch.long).to(
-        device)
+    chosen_edges = torch.tensor(np.random.choice(np.arange(edge_index.shape[1]), int(batch_size / 2))).type(
+        torch.long).to(device)
     chosen_nodes = torch.unique(edge_index[:, chosen_edges]).to(device)
     return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
 
 
 def random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     chosen_nodes = []
-    # TODO have an upper limit or repeat until it's larger than the batch_size?
     rand_indx = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), int(batch_size / 2))).type(torch.long).to(
         device)
     for i in rand_indx:
-        connected_nodes = edge_index[1, edge_index[0] == i]
+        connected_nodes = torch.tensor(edge_index[1, edge_index[0] == i]).type(torch.long).to(device)
         new_node = connected_nodes[np.random.choice(np.arange(connected_nodes.shape[0]))]
         chosen_nodes.append(new_node)
     chosen_nodes = torch.unique(torch.cat((rand_indx, torch.tensor(chosen_nodes))).to(device))
@@ -164,7 +162,7 @@ def forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, 
 def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # fixme @Fabi
     chosen_nodes = torch.tensor([]).type(torch.long).to(device)
-    m = 10 # TODO tweak parameter and mention in section 3
+    m = 10  # TODO tweak parameter and mention in section 3
     # init L with m randomly chosen nodes (uniformly)
     L = np.random.choice(np.arange(adj_label.shape[0]), m)
     while True:
@@ -172,7 +170,7 @@ def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, dev
         degrees = np.array([edge_index[0][edge_index[1] == node].shape[0] for node in L])
         sum_of_degrees = degrees.sum()
         # select randome node u from L with probability degree(u)/sum_v in L degree(v)
-        u = np.random.choice(L, 1, p=[d/sum_of_degrees for d in degrees])
+        u = np.random.choice(L, 1, p=[d / sum_of_degrees for d in degrees])
         # select random neighbor v of u
         outgoing_nodes = edge_index[1][edge_index[0] == u]
         # randomly choose one of the neighbors
