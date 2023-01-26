@@ -101,28 +101,47 @@ def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_
     return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
 
 
-def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device):
+def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, from_hybrid=False):
     chosen_edges = torch.tensor(np.random.choice(np.arange(edge_index.shape[1]), int(batch_size / 2))).type(
         torch.long).to(device)
     chosen_nodes = torch.unique(edge_index[:, chosen_edges]).to(device)
-    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
+    if not from_hybrid:
+        return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
+    else:
+        return chosen_nodes
 
 
-def random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device):
+def random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, from_hybrid=False):
     chosen_nodes = []
-    rand_indx = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), int(batch_size / 2))).type(torch.long).to(
-        device)
+    rand_indx = np.random.choice(np.arange(adj_label.shape[0]), int(batch_size / 2))
     for i in rand_indx:
         connected_nodes = torch.tensor(edge_index[1, edge_index[0] == i]).type(torch.long).to(device)
         new_node = connected_nodes[np.random.choice(np.arange(connected_nodes.shape[0]))]
         chosen_nodes.append(new_node)
-    chosen_nodes = torch.unique(torch.cat((rand_indx, torch.tensor(chosen_nodes))).to(device))
-    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
+    chosen_nodes = torch.unique(
+        torch.cat((torch.tensor(rand_indx), torch.tensor(chosen_nodes))).type(torch.long).to(device))
+    if not from_hybrid:
+        return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
+    else:
+        return chosen_nodes
 
 
 def hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Tobi
-    pass
+    random_node_edge_prob = 0.8
+    # 0 is Random Node Edge; 1 is Random Edge
+    choices = torch.tensor(
+        np.random.choice(2, batch_size, p=[random_node_edge_prob, 1 - random_node_edge_prob])).type(
+        torch.long).to(device)
+    # Get nodes using both random_edge and random_node_edge
+    random_edges = random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, True)
+    random_node_edges = random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, True)
+
+    # Select random nodes according to choices, or all nodes if there are less than chosen
+    random_edges = random_edges[torch.randperm(min(len(choices[choices == 1]), len(random_edges)))]
+    random_node_edges = random_node_edges[torch.randperm(min(len(choices[choices == 0]), len(random_node_edges)))]
+
+    chosen_nodes = torch.unique(torch.cat((random_edges, random_node_edges))).type(torch.long).to(device)
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
 
 
 def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device):
