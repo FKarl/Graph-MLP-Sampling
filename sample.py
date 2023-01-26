@@ -4,7 +4,6 @@ import torch_geometric
 
 
 def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=2000, sampler='random_batch', cuda=True):
-
     # if batch_size is smaller than len(idx_train), remove everything except idx_train
     if batch_size < len(idx_train):
         adj_label = adj_label[idx_train, :][:, idx_train]
@@ -13,41 +12,45 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
         edge_index = edge_index[:, torch.isin(edge_index[0], idx_train) & torch.isin(edge_index[1], idx_train)]
         idx_train = torch.tensor(list(range(0, batch_size)))
 
+    device = torch.device('cuda' if cuda else 'cpu')
+
     if sampler == 'random_batch':
-        return random_batch(adj_label, idx_train, features, labels, batch_size, cuda)
+        return random_batch(adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_pagerank':
-        return random_pagerank(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return random_pagerank(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_degree':
-        return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'rank_degree':
-        return rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'list':
-        return list_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return list_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'negative':
-        return negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_edge':
-        return random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_node_edge':
-        return random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'hybrid_edge':
-        return hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'fixed_size_neighbor':
-        return fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_node_neighbor':
-        return random_node_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return random_node_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_walk':
-        return random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_jump':
-        return random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'forest_fire':
-        return forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'frontier':
-        return frontier(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return frontier(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'snowball':
-        return snowball(edge_index, adj_label, idx_train, features, labels, batch_size, cuda)
+        return snowball(edge_index, adj_label, idx_train, features, labels, batch_size, device)
 
 
 def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size):
+    # TODO shorten nodes to batch size? Would set a strict upper bound.
+    # node_index = node_index[:batch_size]
     if len(idx_train) < batch_size:
         node_index[0:len(idx_train)] = idx_train
         new_idx = list(range(0, len(idx_train)))
@@ -59,40 +62,35 @@ def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size):
     return features_batch, adj_label_batch, labels_batch, new_idx
 
 
-def random_batch(adj_label, idx_train, features, labels, batch_size, cuda):
+def random_batch(adj_label, idx_train, features, labels, batch_size, device):
     """
         get a batch of feature & adjacency matrix
     """
-    rand_indx = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), batch_size)).type(torch.long)
-    if cuda:
-        rand_indx = rand_indx.cuda()
-    rand_indx[0:len(idx_train)] = idx_train
-
+    rand_indx = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), batch_size)).type(torch.long).to(device)
     return idx_to_adj(rand_indx, idx_train, adj_label, features, labels, batch_size)
 
 
-def random_pagerank(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+def random_pagerank(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Fabi
     pass
 
 
-def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Tobi
     pass
 
 
-def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Jan
     pass
 
 
-def list_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+def list_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Jan
     pass
 
 
-def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
-    device = torch.device('cuda' if cuda else 'cpu')
+def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # new edge index = all not existing edges
     new_edge_index = torch_geometric.utils.negative_sampling(edge_index)
     new_edge_index = new_edge_index.to(device)
@@ -104,29 +102,38 @@ def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_
     return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
 
 
-def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device):
+    chosen_edges = torch.tensor(np.random.choice(np.arange(edge_index.shape[1]), batch_size)).type(torch.long).to(
+        device)
+    chosen_nodes = torch.unique(edge_index[:, chosen_edges]).to(device)
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
+
+
+def random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device):
+    chosen_nodes = []
+    # TODO have an upper limit or repeat until it's larger than the batch_size?
+    rand_indx = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), int(batch_size / 2))).type(torch.long).to(
+        device)
+    for i in rand_indx:
+        connected_nodes = edge_index[1, edge_index[0] == i]
+        new_node = connected_nodes[np.random.choice(np.arange(connected_nodes.shape[0]))]
+        chosen_nodes.append(new_node)
+    chosen_nodes = torch.unique(torch.cat((rand_indx, torch.tensor(chosen_nodes))).to(device))
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
+
+
+def hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Tobi
     pass
 
 
-def random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
-    # TODO @Tobi
-    pass
-
-
-def hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
-    # TODO @Tobi
-    pass
-
-
-def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Jan
     pass
 
 
-def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # we select a node uniformly at random together with all of its out-going neighbors.
-    device = torch.device('cuda' if cuda else 'cpu')
     # empty tensor for new nodes
     chosen_nodes = torch.tensor([]).type(torch.long).to(device)
     edge_index = edge_index.to(device)
@@ -138,24 +145,24 @@ def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, bat
             break
     return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
 
-def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+
+def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Jan
     pass
 
 
-def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Jan
     pass
 
 
-def forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+def forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Tobi
     pass
 
 
-def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # fixme @Fabi
-    device = torch.device('cuda' if cuda else 'cpu')
     chosen_nodes = torch.tensor([]).type(torch.long).to(device)
     m = 10 # TODO tweak parameter and mention in section 3
     # init L with m randomly chosen nodes (uniformly)
@@ -179,7 +186,6 @@ def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, cud
             break
 
 
-
-def snowball(edge_index, adj_label, idx_train, features, labels, batch_size, cuda):
+def snowball(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Fabi
     pass
