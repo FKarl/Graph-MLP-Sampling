@@ -95,7 +95,8 @@ def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_
     new_edge_index = torch_geometric.utils.negative_sampling(edge_index)
     new_edge_index = new_edge_index.to(device)
     # select random batch_size edges
-    chosen_edges = torch.tensor(np.random.choice(np.arange(new_edge_index.shape[1]), batch_size)).type(torch.long).to(
+    chosen_edges = torch.tensor(np.random.choice(np.arange(new_edge_index.shape[1]), int(batch_size / 2))).type(
+        torch.long).to(
         device)
     chosen_nodes = torch.unique(new_edge_index[:, chosen_edges]).to(device)
 
