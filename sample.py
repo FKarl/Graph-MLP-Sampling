@@ -6,7 +6,11 @@ import torch_geometric
 def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=2000, sampler='random_batch', cuda=True):
     # if batch_size is smaller than len(idx_train), remove everything except idx_train
     if batch_size < len(idx_train):
-        adj_label = adj_label[idx_train, :][:, idx_train]
+        if adj_label.device == torch.device('cpu') and idx_train.device == torch.device('cuda'):
+            cpu_idx_train = idx_train.cpu()
+            adj_label = adj_label[cpu_idx_train, :][:, cpu_idx_train]
+        else:
+            adj_label = adj_label[idx_train, :][:, idx_train]
         features = features[idx_train]
         labels = labels[idx_train]
         edge_index = edge_index[:, torch.isin(edge_index[0], idx_train) & torch.isin(edge_index[1], idx_train)]
@@ -56,7 +60,11 @@ def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size):
     else:
         new_idx = list(range(0, batch_size))
     features_batch = features[node_index]
-    adj_label_batch = adj_label[node_index, :][:, node_index]
+    if adj_label.device == torch.device('cpu') and idx_train.device == torch.device('cuda'):
+        cpu_node_index = node_index.cpu()
+        adj_label_batch = adj_label[cpu_node_index, :][:, cpu_node_index]
+    else:
+        adj_label_batch = adj_label[node_index, :][:, node_index]
     labels_batch = labels[node_index]
     return features_batch, adj_label_batch, labels_batch, new_idx
 
