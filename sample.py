@@ -192,6 +192,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
                 start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
             current_node = start_node
             sampled_nodes = start_node
+            max_steps = (batch_size*100) -1
 
         neighbors = edge_index[1, edge_index[0] == current_node[0]].numpy()
 
@@ -208,14 +209,8 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
             sampled_nodes = np.concatenate([sampled_nodes, current_node])
 
     sampled_nodes = torch.tensor(sampled_nodes).type(torch.long)
-    if cuda:
-        sampled_nodes = sampled_nodes.cuda()
-    sampled_nodes[0:len(idx_train)] = idx_train
-    new_idx = list(range(0, len(idx_train)))
-    features_batch = features[sampled_nodes]
-    adj_label_batch = adj_label[sampled_nodes, :][:, sampled_nodes]
 
-    return features_batch, adj_label_batch, new_idx
+    return idx_to_adj(sampled_nodes, idx_train, adj_label, features, labels, batch_size)
 
 
 def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, device):
@@ -249,15 +244,8 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
             sampled_nodes = np.concatenate([sampled_nodes, current_node])
 
     sampled_nodes = torch.tensor(sampled_nodes).type(torch.long)
-    if cuda:
-        sampled_nodes = sampled_nodes.cuda()
-    sampled_nodes[0:len(idx_train)] = idx_train
-    new_idx = list(range(0, len(idx_train)))
-    features_batch = features[sampled_nodes]
-    adj_label_batch = adj_label[sampled_nodes, :][:, sampled_nodes]
 
-    return features_batch, adj_label_batch, new_idx
-
+    return idx_to_adj(sampled_nodes, idx_train, adj_label, features, labels, batch_size)
 
 def forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Tobi
