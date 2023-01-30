@@ -58,7 +58,7 @@ def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size):
         node_index[0:len(idx_train)] = idx_train
         new_idx = list(range(0, len(idx_train)))
     else:
-        new_idx = list(range(0, batch_size))
+        new_idx = list(range(0, len(node_index)))
     features_batch = features[node_index]
     if adj_label.device == torch.device('cpu'):
         cpu_node_index = node_index.cpu()
