@@ -207,9 +207,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
         if not (current_node[0] in sampled_nodes):
             sampled_nodes = np.concatenate([sampled_nodes, current_node])
 
-    sampled_nodes = torch.tensor(sampled_nodes).type(torch.long)
-    if cuda:
-        sampled_nodes = sampled_nodes.cuda()
+    sampled_nodes = torch.tensor(sampled_nodes).type(torch.long).to(device)
     sampled_nodes[0:len(idx_train)] = idx_train
     new_idx = list(range(0, len(idx_train)))
     features_batch = features[sampled_nodes]
@@ -248,9 +246,7 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
         if not (current_node[0] in sampled_nodes):
             sampled_nodes = np.concatenate([sampled_nodes, current_node])
 
-    sampled_nodes = torch.tensor(sampled_nodes).type(torch.long)
-    if cuda:
-        sampled_nodes = sampled_nodes.cuda()
+    sampled_nodes = torch.tensor(sampled_nodes).type(torch.long).to(device)
     sampled_nodes[0:len(idx_train)] = idx_train
     new_idx = list(range(0, len(idx_train)))
     features_batch = features[sampled_nodes]
