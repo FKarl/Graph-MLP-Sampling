@@ -173,12 +173,90 @@ def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, bat
 
 def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Jan
-    pass
+    # if after max_steps the batch size is not filled change start node
+    max_steps = batch_size*100
+    # Jump back to start probability
+    c = 0.15
+    # select random node as starting point:
+    start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
+    current_node = start_node
+    sampled_nodes = start_node
+
+    while sampled_nodes.size < batch_size:
+
+        max_steps -= 1
+        # in case batch_size cant be filled start over with a new start_node
+        if (max_steps < 0):
+            old_start = start_node
+            while old_start == start_node:  # avoid same start
+                start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
+            current_node = start_node
+            sampled_nodes = start_node
+
+        neighbors = edge_index[1, edge_index[0] == current_node[0]].numpy()
+
+        # generate probability array for choosing the next node
+        prob = np.ndarray((len(neighbors)+1))
+        # TODO: Problematic in case start_node has no neighbors
+        prob[:] = (1-c)/(len(neighbors))
+        prob[0] = c
+        # walk to one neighbor or the start_node
+        current_node = np.array(
+            [np.random.choice(np.concatenate([start_node, neighbors]), p=prob)])
+        # add the new current node to the sample
+        if not (current_node[0] in sampled_nodes):
+            sampled_nodes = np.concatenate([sampled_nodes, current_node])
+
+    sampled_nodes = torch.tensor(sampled_nodes).type(torch.long)
+    if cuda:
+        sampled_nodes = sampled_nodes.cuda()
+    sampled_nodes[0:len(idx_train)] = idx_train
+    new_idx = list(range(0, len(idx_train)))
+    features_batch = features[sampled_nodes]
+    adj_label_batch = adj_label[sampled_nodes, :][:, sampled_nodes]
+
+    return features_batch, adj_label_batch, new_idx
 
 
 def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Jan
-    pass
+    # if after max_steps the batch size is not filled change start node
+    max_steps = batch_size*100
+    # Jump to a random node anywhere in the entire graph
+    c = 0.15
+    # select random node as starting point:
+    random_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
+    current_node = random_node
+    sampled_nodes = random_node
+
+    while sampled_nodes.size < batch_size:
+
+        max_steps -= 1
+
+        neighbors = edge_index[1, edge_index[0] == current_node[0]].numpy()
+
+        # generate probability array for choosing the next node
+        prob = np.ndarray((len(neighbors)+1))
+        # TODO: Problematic if the start node or a random jumped to node has no neighbors:
+        prob[:] = (1-c)/(len(neighbors))
+        prob[0] = c
+        # walk to one neighbor or a random node
+        random_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
+        current_node = np.array(
+            [np.random.choice(np.concatenate([random_node, neighbors]), p=prob)])
+        # add the new current node to the sample
+        if not (current_node[0] in sampled_nodes):
+            sampled_nodes = np.concatenate([sampled_nodes, current_node])
+
+    sampled_nodes = torch.tensor(sampled_nodes).type(torch.long)
+    if cuda:
+        sampled_nodes = sampled_nodes.cuda()
+    sampled_nodes[0:len(idx_train)] = idx_train
+    new_idx = list(range(0, len(idx_train)))
+    features_batch = features[sampled_nodes]
+    adj_label_batch = adj_label[sampled_nodes, :][:, sampled_nodes]
+
+    return features_batch, adj_label_batch, new_idx
 
 
 def forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, device):
