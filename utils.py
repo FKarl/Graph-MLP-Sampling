@@ -77,6 +77,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         idx_train = mask_to_index(split.train_mask)
         idx_val = mask_to_index(split.val_mask)
         idx_test = mask_to_index(split.test_mask)
+        edge_index = split.edge_index
 
     elif dataset_str in ['ogbn-products', 'ogbn-arxiv']:
         dataset = PygNodePropPredDataset(name=dataset_str)
@@ -87,6 +88,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         labels = torch.flatten(split.y)
         split_idx = dataset.get_idx_split()
         idx_train, idx_val, idx_test = split_idx["train"], split_idx["valid"], split_idx["test"]
+        edge_index = split.edge_index
 
     elif dataset_str in ['facebook']:
         dataset = FacebookPagePage(root='dataset/FacebookPagePage')
@@ -100,6 +102,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         idx_train = mask_to_index(split.train_mask)
         idx_val = mask_to_index(split.val_mask)
         idx_test = mask_to_index(split.test_mask)
+        edge_index = split.edge_index
 
     else:
         raise Exception('Unknown dataset. The following datasets are supported: Cora, Citeseer, PubMed, '
@@ -117,6 +120,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     idx_train = torch.LongTensor(idx_train)
     idx_val = torch.LongTensor(idx_val)
     idx_test = torch.LongTensor(idx_test)
+    edge_index = torch.LongTensor(edge_index)
 
     print('DEBUG: Finished converting to pytorch')
     if cuda:
@@ -127,5 +131,6 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         idx_train = idx_train.cuda()
         idx_val = idx_val.cuda()
         idx_test = idx_test.cuda()
+        edge_index = edge_index.cuda()
 
-    return adj, features, labels, idx_train, idx_val, idx_test, split.edge_index
+    return adj, features, labels, idx_train, idx_val, idx_test, edge_index
