@@ -84,7 +84,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
 
         adj = to_scipy_sparse_matrix(split.edge_index).tocoo().astype(np.float32)
         features = split.x
-        labels = split.y
+        labels = torch.flatten(split.y)
         split_idx = dataset.get_idx_split()
         idx_train, idx_val, idx_test = split_idx["train"], split_idx["valid"], split_idx["test"]
 
