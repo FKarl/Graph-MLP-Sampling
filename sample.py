@@ -9,10 +9,12 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
         if adj_label.device == torch.device('cpu'):
             cpu_idx_train = idx_train.cpu()
             adj_label = adj_label[cpu_idx_train, :][:, cpu_idx_train]
+            idx_train = idx_train.to(torch.device('cuda' if cuda else 'cpu'))
         else:
             adj_label = adj_label[idx_train, :][:, idx_train]
         features = features[idx_train]
         labels = labels[idx_train]
+        print(edge_index.device, idx_train.device)
         edge_index = edge_index[:, torch.isin(edge_index[0], idx_train) & torch.isin(edge_index[1], idx_train)]
         idx_train = torch.tensor(list(range(0, batch_size)))
 
@@ -52,7 +54,7 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
         return snowball(edge_index, adj_label, idx_train, features, labels, batch_size, device)
 
 
-def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size):
+def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size, device):
     node_index = node_index[:batch_size]
     if len(idx_train) < batch_size:
         node_index[0:len(idx_train)] = idx_train
@@ -63,6 +65,7 @@ def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size):
     if adj_label.device == torch.device('cpu'):
         cpu_node_index = node_index.cpu()
         adj_label_batch = adj_label[cpu_node_index, :][:, cpu_node_index]
+        node_index = node_index.to(device)
     else:
         adj_label_batch = adj_label[node_index, :][:, node_index]
     labels_batch = labels[node_index]
@@ -74,7 +77,7 @@ def random_batch(adj_label, idx_train, features, labels, batch_size, device):
         get a batch of feature & adjacency matrix
     """
     rand_indx = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), batch_size)).type(torch.long).to(device)
-    return idx_to_adj(rand_indx, idx_train, adj_label, features, labels, batch_size)
+    return idx_to_adj(rand_indx, idx_train, adj_label, features, labels, batch_size, device)
 
 
 def random_pagerank(edge_index, adj_label, idx_train, features, labels, batch_size, device):
@@ -106,7 +109,7 @@ def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_
         torch.long).to(device)
     chosen_nodes = torch.unique(new_edge_index[:, chosen_edges]).to(device)
 
-    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 
 def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, from_hybrid=False):
@@ -114,7 +117,7 @@ def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, 
         torch.long).to(device)
     chosen_nodes = torch.unique(edge_index[:, chosen_edges]).to(device)
     if not from_hybrid:
-        return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
+        return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
     else:
         return chosen_nodes
 
@@ -129,7 +132,7 @@ def random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_s
     chosen_nodes = torch.unique(
         torch.cat((torch.tensor(rand_indx), torch.tensor(chosen_nodes))).type(torch.long).to(device))
     if not from_hybrid:
-        return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
+        return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
     else:
         return chosen_nodes
 
@@ -149,7 +152,7 @@ def hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, 
     random_node_edges = random_node_edges[torch.randperm(min(len(choices[choices == 0]), len(random_node_edges)))]
 
     chosen_nodes = torch.unique(torch.cat((random_edges, random_node_edges))).type(torch.long).to(device)
-    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 
 def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device):
@@ -168,7 +171,7 @@ def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, bat
         chosen_nodes = torch.cat((chosen_nodes, chosen_node, outgoing_nodes)).to(device)
         if chosen_nodes.shape[0] >= batch_size:
             break
-    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size)
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 
 def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, device):
@@ -210,7 +213,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
     sampled_nodes = torch.tensor(sampled_nodes).type(torch.long).to(device)
 
-    return idx_to_adj(sampled_nodes, idx_train, adj_label, features, labels, batch_size)
+    return idx_to_adj(sampled_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 
 def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, device):
@@ -245,7 +248,7 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
     sampled_nodes = torch.tensor(sampled_nodes).type(torch.long).to(device)
 
-    return idx_to_adj(sampled_nodes, idx_train, adj_label, features, labels, batch_size)
+    return idx_to_adj(sampled_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 def forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Tobi
