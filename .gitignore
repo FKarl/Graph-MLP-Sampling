@@ -132,3 +132,6 @@ dmypy.json
 .idea/
 # Raw datasets
 dataset/
+
+# Pickled adjacency matrices
+adj_label*.pt
