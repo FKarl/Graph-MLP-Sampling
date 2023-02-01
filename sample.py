@@ -68,6 +68,7 @@ def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size, d
         node_index = node_index.to(device)
     else:
         adj_label_batch = adj_label[node_index, :][:, node_index]
+        adj_label_batch = adj_label_batch.to(device)
     labels_batch = labels[node_index]
     return features_batch, adj_label_batch, labels_batch, new_idx
 
