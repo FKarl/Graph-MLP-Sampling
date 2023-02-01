@@ -14,7 +14,6 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
             adj_label = adj_label[idx_train, :][:, idx_train]
         features = features[idx_train]
         labels = labels[idx_train]
-        print(edge_index.device, idx_train.device)
         edge_index = edge_index[:, torch.isin(edge_index[0], idx_train) & torch.isin(edge_index[1], idx_train)]
         idx_train = torch.tensor(list(range(0, batch_size)))
 
