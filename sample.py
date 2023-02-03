@@ -1,9 +1,12 @@
+from os.path import exists
+
 import numpy as np
 import torch
 import torch_geometric
 
 
-def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=2000, sampler='random_batch', cuda=True):
+def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=2000, sampler='random_batch', cuda=True,
+              dataset='cora'):
     # if batch_size is smaller than len(idx_train), remove everything except idx_train
     if batch_size < len(idx_train):
         if adj_label.device == torch.device('cpu'):
@@ -23,8 +26,12 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
         return random_batch(adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_pagerank':
         return random_pagerank(edge_index, adj_label, idx_train, features, labels, batch_size, device)
-    elif sampler == 'random_degree':
-        return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device)
+    elif sampler == 'random_degree_higher':
+        return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, dataset,
+                             higher_prob=True)
+    elif sampler == 'random_degree_lower':
+        return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, dataset,
+                             higher_prob=False)
     elif sampler == 'rank_degree':
         return rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'list':
@@ -81,17 +88,30 @@ def random_batch(adj_label, idx_train, features, labels, batch_size, device):
 
 
 def random_pagerank(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Fabi
-    pass
+    raise NotImplementedError('Not Implemented sampler!')
 
 
-def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Tobi
-    pass
+def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, dataset,
+                  higher_prob=True):
+    nodes = np.arange(adj_label.shape[0])
+    # calculate and save the degree of all nodes
+    if exists('degree_' + dataset + '.npy'):
+        degrees = np.load('degree_' + dataset + '.npy')
+    else:
+        degrees = np.array([edge_index[0][edge_index[1] == node].shape[0] for node in nodes])
+        np.save('degree_' + dataset + '.npy', degrees)
+    total_degree = degrees.sum()
+    if higher_prob:  # select nodes based on degree; higher degree ==> HIGHER selection probability
+        selected_nodes = torch.tensor(
+            np.random.choice(nodes, batch_size, p=[deg / total_degree for deg in degrees])).type(torch.long).to(device)
+    else:  # select nodes based on degree; higher degree ==> LOWER selection probability
+        # TODO how do I do that?
+        selected_nodes = torch.tensor(
+            np.random.choice(nodes, batch_size, p=[deg / total_degree for deg in degrees])).type(torch.long).to(device)
+    return idx_to_adj(selected_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 
 def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Jan
     s = 3  # number of randomly selected nodes as a starting point
     p = .35  # probability value defines the top-k of each ranking list
 
@@ -115,29 +135,28 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
             # sort tensor based on the rank of each node highes to lowest degree:
             ranked_neighbors = ranked_neighbors[:, torch.argsort(ranked_neighbors[1, :], descending=True)]
 
-            # select the k top ones 
-            k_top = ranked_neighbors[0][:int(ranked_neighbors[0].shape[0]*p)]
+            # select the k top ones
+            k_top = ranked_neighbors[0][:int(ranked_neighbors[0].shape[0] * p)]
             sample = torch.cat([sample, torch.tensor([w]), k_top])
 
             # add the other nodes as new_seeds
             new_seeds = torch.cat([new_seeds, k_top])
-        
+
         seeds = torch.unique(new_seeds, sorted=False)
         sample = torch.unique(sample, sorted=False)
 
         # if no seed has a degree >1 generate new random seeds:
-        if not any(torch.tensor(edge_index[0, edge_index[0] == node.item()]).shape[0]>1 for node in seeds):
+        if not any(torch.tensor(edge_index[0, edge_index[0] == node.item()]).shape[0] > 1 for node in seeds):
             seeds = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), s)).type(torch.long)
 
     # TODO: to keep sample size = batch_size remove the latest added nodes?
     sample = sample[:batch_size]
-    
+
     return idx_to_adj(sample, idx_train, adj_label, features, labels, batch_size, device)
 
 
 def list_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Jan
-    pass
+    raise NotImplementedError('Not Implemented sampler!')
 
 
 def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device):
@@ -215,9 +234,8 @@ def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, bat
 
 
 def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Jan
     # if after max_steps the batch size is not filled change start node
-    max_steps = batch_size*100
+    max_steps = batch_size * 100
     # Jump back to start probability
     c = 0.15
     # select random node as starting point:
@@ -225,7 +243,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
     current_node = start_node
     sampled_nodes = start_node
     # in case start node has no neighbors
-    while len(neighbors)==0:
+    while len(neighbors) == 0:
         start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
         current_node = start_node
         sampled_nodes = start_node
@@ -237,19 +255,19 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
         # in case batch_size cant be filled start over with a new start_node
         if (max_steps < 0):
             old_start = start_node
-            while (old_start == start_node) or (len(neighbors)==0):  # avoid same start and no neighbor
+            while (old_start == start_node) or (len(neighbors) == 0):  # avoid same start and no neighbor
                 start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
                 neighbors = edge_index[1, edge_index[0] == start_node[0]].numpy()
             current_node = start_node
             sampled_nodes = start_node
-            max_steps = (batch_size*100) -1
+            max_steps = (batch_size * 100) - 1
 
         neighbors = edge_index[1, edge_index[0] == current_node[0]].numpy()
 
         # generate probability array for choosing the next node
-        prob = np.ndarray((len(neighbors)+1))
+        prob = np.ndarray((len(neighbors) + 1))
         # TODO: Should be fine cause start node is checked for len(neighbors)=0
-        prob[:] = (1-c)/(len(neighbors))
+        prob[:] = (1 - c) / (len(neighbors))
         prob[0] = c
         # walk to one neighbor or the start_node
         current_node = np.array(
@@ -264,8 +282,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
 
 def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Jan
-    c = 0.15 # Probability to jump to a random node anywher in the graph
+    c = 0.15  # Probability to jump to a random node anywher in the graph
     # select random node as starting point:
     random_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
     current_node = random_node
@@ -274,18 +291,18 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
     while sampled_nodes.size < batch_size:
 
         neighbors = edge_index[1, edge_index[0] == current_node[0]].numpy()
-        
-        if len(neighbors)>0:
+
+        if len(neighbors) > 0:
             # generate probability array for choosing the next node
-            prob = np.ndarray((len(neighbors)+1))
-            prob[:] = (1-c)/(len(neighbors))
+            prob = np.ndarray((len(neighbors) + 1))
+            prob[:] = (1 - c) / (len(neighbors))
             prob[0] = c
             # walk to one neighbor or jump to random node
             random_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
             current_node = np.array(
-            [np.random.choice(np.concatenate([random_node, neighbors]), p=prob)])
+                [np.random.choice(np.concatenate([random_node, neighbors]), p=prob)])
         else:
-            current_node = np.random.choice(np.arange(adj_label.shape[0]),1)
+            current_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
         # add the new current node to the sample
         if not (current_node[0] in sampled_nodes):
             sampled_nodes = np.concatenate([sampled_nodes, current_node])
@@ -294,9 +311,9 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
     return idx_to_adj(sampled_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
+
 def forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Tobi
-    pass
+    raise NotImplementedError('Not Implemented sampler!')
 
 
 def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, device):

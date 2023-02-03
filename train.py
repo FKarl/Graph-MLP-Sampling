@@ -52,14 +52,17 @@ parser.add_argument('--order', type=int, default=2,
 parser.add_argument('--tau', type=float, default=1.0,
                     help='temperature for Ncontrast loss')
 # TODO adapt to all that are actually implemented and add description to README
-parser.add_argument('--sampler', type=str, choices=['random_batch', 'random_pagerank', 'random_degree', 'rank_degree',
-                                                    'list', 'negative', 'random_edge', 'random_node_edge',
-                                                    'hybrid_edge', 'fixed_size_neighbor', 'random_node_neighbor',
-                                                    'random_walk', 'random_jump', 'forest_fire', 'frontier',
-                                                    'snowball'],
+parser.add_argument('--sampler', type=str,
+                    choices=['random_batch', 'random_pagerank', 'random_degree_higher', 'random_degree_lower',
+                             'rank_degree',
+                             'list', 'negative', 'random_edge', 'random_node_edge',
+                             'hybrid_edge', 'fixed_size_neighbor', 'random_node_neighbor',
+                             'random_walk', 'random_jump', 'forest_fire', 'frontier',
+                             'snowball'],
                     default='random_batch',
                     help="sampler to use to generate a batch. Possible options are: 'random_batch', "
-                         "'random_pagerank', 'random_degree', 'rank_degree', 'list', 'negative', 'random_edge', "
+                         "'random_pagerank', 'random_degree_higher', 'random_degree_lower', 'rank_degree', 'list', "
+                         "'negative', 'random_edge',"
                          "'random_node_edge', 'hybrid_edge', 'fixed_size_neighbor', 'random_node_neighbor', "
                          "'random_walk', 'random_jump', 'forest_fire', 'frontier', 'snowball'. See the README for more "
                          "information")
@@ -119,7 +122,8 @@ def train():
     features_batch, adj_label_batch, labels_batch, new_idx = sample.get_batch(adj_label, idx_train, features,
                                                                               edge_index, labels,
                                                                               batch_size=args.batch_size,
-                                                                              sampler=args.sampler, cuda=args.cuda)
+                                                                              sampler=args.sampler, cuda=args.cuda,
+                                                                              dataset=args.data)
     model.train()
     optimizer.zero_grad()
     output, x_dis = model(features_batch)

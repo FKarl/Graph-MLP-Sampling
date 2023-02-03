@@ -133,5 +133,6 @@ dmypy.json
 # Raw datasets
 dataset/
 
-# Pickled adjacency matrices
+# Saved adjacency matrices and node degrees
 adj_label*.pt
+degree_*.npy
