@@ -92,7 +92,47 @@ def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size
 
 def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Jan
-    pass
+    s = 3  # number of randomly selected nodes as a starting point
+    p = .35  # probability value defines the top-k of each ranking list
+
+    seeds = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), s)).type(torch.long)
+    sample = torch.Tensor(0)
+
+    while sample.shape[0] <= batch_size:
+        new_seeds = torch.Tensor(0)
+
+        for w in seeds:
+            neighbors = torch.tensor(edge_index[1, edge_index[0] == w])
+            rank = torch.Tensor(neighbors.shape[0])
+
+            # Calculates the degree of all neighbors, saves them in rank:
+            for i in range(neighbors.shape[0]):
+                rank[i] = torch.tensor(edge_index[0, edge_index[0] == neighbors[i]]).shape[0]
+
+            # combine nodes with their rank degree (same format as edge_index)
+            ranked_neighbors = torch.stack((neighbors, rank), 0)
+
+            # sort tensor based on the rank of each node highes to lowest degree:
+            ranked_neighbors = ranked_neighbors[:, torch.argsort(ranked_neighbors[1, :], descending=True)]
+
+            # select the k top ones 
+            k_top = ranked_neighbors[0][:int(ranked_neighbors[0].shape[0]*p)]
+            sample = torch.cat([sample, torch.tensor([w]), k_top])
+
+            # add the other nodes as new_seeds
+            new_seeds = torch.cat([new_seeds, k_top])
+        
+        seeds = torch.unique(new_seeds, sorted=False)
+        sample = torch.unique(sample, sorted=False)
+
+        # if no seed has a degree >1 generate new random seeds:
+        if not any(torch.tensor(edge_index[0, edge_index[0] == node.item()]).shape[0]>1 for node in seeds):
+            seeds = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), s)).type(torch.long)
+
+    # TODO: to keep sample size = batch_size remove the latest added nodes?
+    sample = sample[:batch_size]
+    
+    return idx_to_adj(sample, idx_train, adj_label, features, labels, batch_size, device)
 
 
 def list_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device):
