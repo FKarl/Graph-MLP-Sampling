@@ -224,6 +224,12 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
     start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
     current_node = start_node
     sampled_nodes = start_node
+    # in case start node has no neighbors
+    while len(neighbors)==0:
+        start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
+        current_node = start_node
+        sampled_nodes = start_node
+        neighbors = edge_index[1, edge_index[0] == current_node[0]].numpy()
 
     while sampled_nodes.size < batch_size:
 
@@ -231,8 +237,9 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
         # in case batch_size cant be filled start over with a new start_node
         if (max_steps < 0):
             old_start = start_node
-            while old_start == start_node:  # avoid same start
+            while (old_start == start_node) or (len(neighbors)==0):  # avoid same start and no neighbor
                 start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
+                neighbors = edge_index[1, edge_index[0] == start_node[0]].numpy()
             current_node = start_node
             sampled_nodes = start_node
             max_steps = (batch_size*100) -1
@@ -241,7 +248,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
         # generate probability array for choosing the next node
         prob = np.ndarray((len(neighbors)+1))
-        # TODO: Problematic in case start_node has no neighbors
+        # TODO: Should be fine cause start node is checked for len(neighbors)=0
         prob[:] = (1-c)/(len(neighbors))
         prob[0] = c
         # walk to one neighbor or the start_node
