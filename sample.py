@@ -265,10 +265,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
 def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     # TODO @Jan
-    # if after max_steps the batch size is not filled change start node
-    max_steps = batch_size*100
-    # Jump to a random node anywhere in the entire graph
-    c = 0.15
+    c = 0.15 # Probability to jump to a random node anywher in the graph
     # select random node as starting point:
     random_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
     current_node = random_node
@@ -276,19 +273,19 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
     while sampled_nodes.size < batch_size:
 
-        max_steps -= 1
-
         neighbors = edge_index[1, edge_index[0] == current_node[0]].numpy()
-
-        # generate probability array for choosing the next node
-        prob = np.ndarray((len(neighbors)+1))
-        # TODO: Problematic if the start node or a random jumped to node has no neighbors:
-        prob[:] = (1-c)/(len(neighbors))
-        prob[0] = c
-        # walk to one neighbor or a random node
-        random_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
-        current_node = np.array(
+        
+        if len(neighbors)>0:
+            # generate probability array for choosing the next node
+            prob = np.ndarray((len(neighbors)+1))
+            prob[:] = (1-c)/(len(neighbors))
+            prob[0] = c
+            # walk to one neighbor or jump to random node
+            random_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
+            current_node = np.array(
             [np.random.choice(np.concatenate([random_node, neighbors]), p=prob)])
+        else:
+            current_node = np.random.choice(np.arange(adj_label.shape[0]),1)
         # add the new current node to the sample
         if not (current_node[0] in sampled_nodes):
             sampled_nodes = np.concatenate([sampled_nodes, current_node])
