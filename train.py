@@ -81,11 +81,11 @@ if not args.no_wandb:
 # get data
 adj, features, labels, idx_train, idx_val, idx_test, edge_index = load_dataset(args.data, 'AugNormAdj', args.cuda)
 print("DEBUG: Dataset loaded")
-if exists('adj_label_' + args.data + '_order_' + str(args.order) + '.pt'):
-    adj_label = torch.load('adj_label_' + args.data + '_order_' + str(args.order) + '.pt')
+if exists('data/adj_label_' + args.data + '_order_' + str(args.order) + '.pt'):
+    adj_label = torch.load('data/adj_label_' + args.data + '_order_' + str(args.order) + '.pt')
 else:
     adj_label = get_A_r(adj, args.order)
-    torch.save(adj_label, 'adj_label_' + args.data + '_order_' + str(args.order) + '.pt')
+    torch.save(adj_label, 'data/adj_label_' + args.data + '_order_' + str(args.order) + '.pt')
 print("DEBUG: Finished A_r calc")
 
 # Model and optimizer

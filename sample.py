@@ -98,11 +98,11 @@ def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size
                   higher_prob=True):
     nodes = torch.unique(edge_index[0])
     # calculate and save the degree of all nodes
-    if exists('degree_' + dataset + '.npy'):
-        degrees = np.load('degree_' + dataset + '.npy')
+    if exists('data/degree_' + dataset + '.npy'):
+        degrees = np.load('data/degree_' + dataset + '.npy')
     else:
         degrees = np.array([edge_index[0][edge_index[1] == node].shape[0] for node in nodes])
-        np.save('degree_' + dataset + '.npy', degrees)
+        np.save('data/degree_' + dataset + '.npy', degrees)
     total_degree = degrees.sum()
     if higher_prob:  # select nodes based on degree; higher degree ==> HIGHER selection probability
         selected_nodes = torch.tensor(
