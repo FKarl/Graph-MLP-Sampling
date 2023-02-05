@@ -221,8 +221,32 @@ def hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
 
 def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Jan
-    pass
+    FIXED_NC = 3 # max number of neighbors sampled per node
+    K = 2 # how many layers are sampled
+    
+    # For the alternative:
+    # max_spi =0 # max sample size per iteration
+    # for i in range(K+1):
+    #     max_spi += FIXED_NC**i
+    # MAX_ITER = int(batch_size/max_spi)
+    
+    chosen_nodes = torch.empty(0)
+    # alternative: for k in range(MAX_ITER):
+    while chosen_nodes.numel()<batch_size:
+        start_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1))
+        chosen_nodes = torch.concat([chosen_nodes, start_node],0)
+        i=0
+        while (i < K):
+            i+=1
+            for node in start_node:
+                neighbors = edge_index[1, edge_index[0] == node]
+                # select fixed number of nodes, if there are not enough, select all neighbors:
+                if not (neighbors.numel()< FIXED_NC):
+                    neighbors = torch.tensor(np.random.choice(neighbors, FIXED_NC,replace=False))
+                chosen_nodes = torch.concat([chosen_nodes, neighbors])
+                start_node = neighbors
+    
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 
 def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device):
