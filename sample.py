@@ -18,6 +18,9 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
         features = features[idx_train]
         labels = labels[idx_train]
         edge_index = edge_index[:, torch.isin(edge_index[0], idx_train) & torch.isin(edge_index[1], idx_train)]
+        if edge_index.numel() == 0:
+            raise Exception('Only used training set as batch, but there are no edges in the training set. Raise the '
+                            'batch_size above the number of training nodes (' + str(len(idx_train)) + ')')
         idx_train = torch.tensor(list(range(0, batch_size)))
 
     device = torch.device('cuda' if cuda else 'cpu')
@@ -93,7 +96,7 @@ def random_pagerank(edge_index, adj_label, idx_train, features, labels, batch_si
 
 def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, dataset,
                   higher_prob=True):
-    nodes = np.arange(adj_label.shape[0])
+    nodes = torch.unique(edge_index[0])
     # calculate and save the degree of all nodes
     if exists('degree_' + dataset + '.npy'):
         degrees = np.load('degree_' + dataset + '.npy')
@@ -105,9 +108,12 @@ def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size
         selected_nodes = torch.tensor(
             np.random.choice(nodes, batch_size, p=[deg / total_degree for deg in degrees])).type(torch.long).to(device)
     else:  # select nodes based on degree; higher degree ==> LOWER selection probability
-        # TODO how do I do that?
+        inverse_degree = [1 - deg / total_degree for deg in degrees]
+        inverse_sum = sum(inverse_degree)
         selected_nodes = torch.tensor(
-            np.random.choice(nodes, batch_size, p=[deg / total_degree for deg in degrees])).type(torch.long).to(device)
+            np.random.choice(nodes, batch_size, p=[deg / inverse_sum for deg in inverse_degree])).type(torch.long).to(
+            device)
+
     return idx_to_adj(selected_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 
