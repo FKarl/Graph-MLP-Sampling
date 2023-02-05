@@ -11,7 +11,7 @@ if [ "$1" != "" ]; then
     DATASET="$1"
 fi
 
-for samp in random_batch random_pagerank random_degree_higher random_degree_lower rank_degree list negative random_edge random_node_edge hybrid_edge fixed_size_neighbor random_node_neighbor random_walk random_jump forest_fire frontier snowball
+for samp in random_batch random_degree_higher random_degree_lower rank_degree negative random_edge random_node_edge hybrid_edge fixed_size_neighbor random_node_neighbor random_walk random_jump frontier snowball # random_pagerank forest_fire list
 do
   case $DATASET in
     cora) ## cora
