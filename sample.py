@@ -96,12 +96,12 @@ def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size
     total_degree = degrees.sum()
     if higher_prob:  # select nodes based on degree; higher degree ==> HIGHER selection probability
         selected_nodes = torch.tensor(
-            np.random.choice(nodes, batch_size, p=[deg / total_degree for deg in degrees])).type(torch.long).to(device)
+            np.random.choice(nodes.cpu(), batch_size, p=[deg / total_degree for deg in degrees])).type(torch.long).to(device)
     else:  # select nodes based on degree; higher degree ==> LOWER selection probability
         inverse_degree = [1 - deg / total_degree for deg in degrees]
         inverse_sum = sum(inverse_degree)
         selected_nodes = torch.tensor(
-            np.random.choice(nodes, batch_size, p=[deg / inverse_sum for deg in inverse_degree])).type(torch.long).to(
+            np.random.choice(nodes.cpu(), batch_size, p=[deg / inverse_sum for deg in inverse_degree])).type(torch.long).to(
             device)
 
     return idx_to_adj(selected_nodes, idx_train, adj_label, features, labels, batch_size, device)
@@ -111,15 +111,15 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
     s = 3  # number of randomly selected nodes as a starting point
     p = .35  # probability value defines the top-k of each ranking list
 
-    seeds = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), s)).type(torch.long)
-    sample = torch.Tensor(0)
+    seeds = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), s)).type(torch.long).to(device)
+    sample = torch.Tensor(0).type(torch.long).to(device)
 
     while sample.shape[0] <= batch_size:
-        new_seeds = torch.Tensor(0)
+        new_seeds = torch.Tensor(0).type(torch.long).to(device)
 
         for w in seeds:
-            neighbors = torch.tensor(edge_index[1, edge_index[0] == w])
-            rank = torch.Tensor(neighbors.shape[0])
+            neighbors = torch.tensor(edge_index[1, edge_index[0] == w]).type(torch.long).to(device)
+            rank = torch.Tensor(neighbors.shape[0]).type(torch.long).to(device)
 
             # Calculates the degree of all neighbors, saves them in rank:
             for i in range(neighbors.shape[0]):
@@ -128,7 +128,7 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
             # combine nodes with their rank degree (same format as edge_index)
             ranked_neighbors = torch.stack((neighbors, rank), 0)
 
-            # sort tensor based on the rank of each node highes to lowest degree:
+            # sort tensor based on the rank of each node highest to lowest degree:
             ranked_neighbors = ranked_neighbors[:, torch.argsort(ranked_neighbors[1, :], descending=True)]
 
             # select the k top ones
@@ -138,12 +138,12 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
             # add the other nodes as new_seeds
             new_seeds = torch.cat([new_seeds, k_top])
 
-        seeds = torch.unique(new_seeds, sorted=False)
-        sample = torch.unique(sample, sorted=False)
+        seeds = torch.unique(new_seeds, sorted=False).type(torch.long).to(device)
+        sample = torch.unique(sample, sorted=False).type(torch.long).to(device)
 
         # if no seed has a degree >1 generate new random seeds:
         if not any(torch.tensor(edge_index[0, edge_index[0] == node.item()]).shape[0] > 1 for node in seeds):
-            seeds = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), s)).type(torch.long)
+            seeds = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), s)).type(torch.long).to(device)
 
     # TODO: to keep sample size = batch_size remove the latest added nodes?
     sample = sample[:batch_size]
@@ -219,7 +219,7 @@ def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batc
     chosen_nodes = torch.empty(0)
     # alternative: for k in range(MAX_ITER):
     while chosen_nodes.numel() < batch_size:
-        start_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1))
+        start_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
         chosen_nodes = torch.concat([chosen_nodes, start_node], 0)
         i = 0
         while (i < K):
@@ -228,7 +228,7 @@ def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batc
                 neighbors = edge_index[1, edge_index[0] == node]
                 # select fixed number of nodes, if there are not enough, select all neighbors:
                 if not (neighbors.numel() < FIXED_NC):
-                    neighbors = torch.tensor(np.random.choice(neighbors, FIXED_NC, replace=False))
+                    neighbors = torch.tensor(np.random.choice(neighbors.cpu(), FIXED_NC, replace=False)).type(torch.long).to(device)
                 chosen_nodes = torch.concat([chosen_nodes, neighbors])
                 start_node = neighbors
 
@@ -259,6 +259,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
     start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
     current_node = start_node
     sampled_nodes = start_node
+    neighbors = []
     # in case start node has no neighbors
     while len(neighbors) == 0:
         start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
@@ -307,7 +308,7 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
     while sampled_nodes.size < batch_size:
 
-        neighbors = edge_index[1, edge_index[0] == current_node[0]].numpy()
+        neighbors = edge_index[1, edge_index[0] == current_node[0]].cpu().numpy()
 
         if len(neighbors) > 0:
             # generate probability array for choosing the next node
@@ -344,7 +345,7 @@ def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, dev
         outgoing_nodes = edge_index[1][edge_index[0] == u]
         # randomly choose one of the neighbors
         rand_idx = np.random.choice(np.arange(outgoing_nodes.shape[0]), 1)
-        v = outgoing_nodes[rand_idx]
+        v = outgoing_nodes[rand_idx].cpu()
         # replace u with v in L
         L = np.where(L == u, v, L)
         # add u and v to chosen nodes
