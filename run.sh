@@ -17,7 +17,7 @@ do
   do
     case $DATASET in
       cora) ## cora
-        python3 train.py --data=cora --epochs=4 --hidden=256 --dropout=0.6 --lr=0.001 --weight_decay=5e-3 --alpha=100.0 --batch_size=2000 --order=3 --tau=2 --sampler=$samp
+        python3 train.py --data=cora --epochs=400 --hidden=256 --dropout=0.6 --lr=0.001 --weight_decay=5e-3 --alpha=100.0 --batch_size=2000 --order=3 --tau=2 --sampler=$samp
         ;;
       citeseer) ## citeseer
         python3 train.py --data=citeseer --epochs=400 --hidden=256 --dropout=0.6 --lr=0.01 --weight_decay=5e-3 --alpha=1.0 --batch_size=2000 --order=2 --tau=1 --sampler=$samp
