@@ -347,7 +347,6 @@ def forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
 
 def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # fixme @Fabi
     chosen_nodes = torch.tensor([]).type(torch.long).to(device)
     m = 10  # TODO tweak parameter and mention in section 3
     # init L with m randomly chosen nodes (uniformly)
@@ -356,8 +355,8 @@ def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, dev
         # calculate the degree of each node in L
         degrees = np.array([edge_index[0][edge_index[1] == node].shape[0] for node in L])
         sum_of_degrees = degrees.sum()
-        # select randome node u from L with probability degree(u)/sum_v in L degree(v)
-        u = np.random.choice(L, 1, p=[d / sum_of_degrees for d in degrees])
+        # select random node u from L with probability degree(u)/sum_v in L degree(v)
+        u = np.random.choice(L, p=[d / sum_of_degrees for d in degrees])
         # select random neighbor v of u
         outgoing_nodes = edge_index[1][edge_index[0] == u]
         # randomly choose one of the neighbors
@@ -369,6 +368,7 @@ def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, dev
         chosen_nodes = torch.unique(torch.cat((chosen_nodes, torch.tensor([u, v]).type(torch.long).to(device))))
         if chosen_nodes.shape[0] >= batch_size:
             break
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 
 def snowball(edge_index, adj_label, idx_train, features, labels, batch_size, device):
