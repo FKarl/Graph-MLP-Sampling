@@ -126,14 +126,14 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
                 rank[i] = torch.tensor(edge_index[0, edge_index[0] == neighbors[i]]).shape[0]
 
             # combine nodes with their rank degree (same format as edge_index)
-            ranked_neighbors = torch.stack((neighbors, rank), 0)
+            ranked_neighbors = torch.stack((neighbors, rank), 0).type(torch.long).to(device)
 
             # sort tensor based on the rank of each node highest to lowest degree:
             ranked_neighbors = ranked_neighbors[:, torch.argsort(ranked_neighbors[1, :], descending=True)]
 
             # select the k top ones
             k_top = ranked_neighbors[0][:int(ranked_neighbors[0].shape[0] * p)]
-            sample = torch.cat([sample, torch.tensor([w]), k_top])
+            sample = torch.cat([sample, torch.tensor([w]).to(device), k_top])
 
             # add the other nodes as new_seeds
             new_seeds = torch.cat([new_seeds, k_top])
@@ -216,7 +216,7 @@ def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batc
     #     max_spi += FIXED_NC**i
     # MAX_ITER = int(batch_size/max_spi)
 
-    chosen_nodes = torch.empty(0)
+    chosen_nodes = torch.empty(0).type(torch.long).to(device)
     # alternative: for k in range(MAX_ITER):
     while chosen_nodes.numel() < batch_size:
         start_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
@@ -265,7 +265,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
         start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
         current_node = start_node
         sampled_nodes = start_node
-        neighbors = edge_index[1, edge_index[0] == current_node[0]].numpy()
+        neighbors = edge_index[1, edge_index[0] == current_node[0]].cpu().numpy()
 
     while sampled_nodes.size < batch_size:
 
@@ -275,12 +275,12 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
             old_start = start_node
             while (old_start == start_node) or (len(neighbors) == 0):  # avoid same start and no neighbor
                 start_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
-                neighbors = edge_index[1, edge_index[0] == start_node[0]].numpy()
+                neighbors = edge_index[1, edge_index[0] == start_node[0]].cpu().numpy()
             current_node = start_node
             sampled_nodes = start_node
             max_steps = (batch_size * 100) - 1
 
-        neighbors = edge_index[1, edge_index[0] == current_node[0]].numpy()
+        neighbors = edge_index[1, edge_index[0] == current_node[0]].cpu().numpy()
 
         # generate probability array for choosing the next node
         prob = np.ndarray((len(neighbors) + 1))
