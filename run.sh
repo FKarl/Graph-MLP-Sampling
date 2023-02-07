@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --ntasks=1
+#SBATCH --ntasks=8
 #SBATCH --time=120:00
 #SBATCH --gres=gpu:2
 #SBATCH --partition=gpu_8
