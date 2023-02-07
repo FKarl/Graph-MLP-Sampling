@@ -155,7 +155,7 @@ def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_
     # new edge index = all not existing edges
     new_edge_index = torch_geometric.utils.negative_sampling(edge_index)
     new_edge_index = new_edge_index.to(device)
-    # select random batch_size edges
+    # select random batch_size  ((batch_size/2) edges from new_edge_index). So it will be always <= batch_size
     chosen_edges = torch.tensor(np.random.choice(np.arange(new_edge_index.shape[1]), int(batch_size / 2))).type(
         torch.long).to(device)
     chosen_nodes = torch.unique(new_edge_index[:, chosen_edges]).to(device)
@@ -207,31 +207,31 @@ def hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
 
 def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    FIXED_NC = 3 # max number of neighbors sampled per node
-    K = 2 # how many layers are sampled
-    
+    FIXED_NC = 3  # max number of neighbors sampled per node
+    K = 2  # how many layers are sampled
+
     # For the alternative:
     # max_spi =0 # max sample size per iteration
     # for i in range(K+1):
     #     max_spi += FIXED_NC**i
     # MAX_ITER = int(batch_size/max_spi)
-    
+
     chosen_nodes = torch.empty(0)
     # alternative: for k in range(MAX_ITER):
-    while chosen_nodes.numel()<batch_size:
+    while chosen_nodes.numel() < batch_size:
         start_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1))
-        chosen_nodes = torch.concat([chosen_nodes, start_node],0)
-        i=0
+        chosen_nodes = torch.concat([chosen_nodes, start_node], 0)
+        i = 0
         while (i < K):
-            i+=1
+            i += 1
             for node in start_node:
                 neighbors = edge_index[1, edge_index[0] == node]
                 # select fixed number of nodes, if there are not enough, select all neighbors:
-                if not (neighbors.numel()< FIXED_NC):
-                    neighbors = torch.tensor(np.random.choice(neighbors, FIXED_NC,replace=False))
+                if not (neighbors.numel() < FIXED_NC):
+                    neighbors = torch.tensor(np.random.choice(neighbors, FIXED_NC, replace=False))
                 chosen_nodes = torch.concat([chosen_nodes, neighbors])
                 start_node = neighbors
-    
+
     return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 
@@ -243,6 +243,7 @@ def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, bat
     while True:
         chosen_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
         outgoing_nodes = edge_index[1][edge_index[0] == chosen_node]
+        # TODO maybe change to match always <= batch_size condition (check before concat)
         chosen_nodes = torch.cat((chosen_nodes, chosen_node, outgoing_nodes)).to(device)
         if chosen_nodes.shape[0] >= batch_size:
             break
@@ -354,5 +355,28 @@ def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, dev
 
 
 def snowball(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Fabi
-    pass
+    v = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(
+        device)  # randomly chosen node
+    chosen_nodes = v  # init chosen nodes with v
+
+    while chosen_nodes.shape[0] <= batch_size:
+        best_node = (-1, 0)  # (expansion factor, node)
+        # calc N(S)
+        neighborhood_of_chosen_nodes = torch.unique(edge_index[1][torch.isin(edge_index[0], chosen_nodes)])
+        neighborhood_of_chosen_nodes = torch.unique(neighborhood_of_chosen_nodes)
+        ns_union_s = torch.unique(torch.cat((neighborhood_of_chosen_nodes, chosen_nodes)))
+        # Select new node v ∈ N (S)
+        for v in neighborhood_of_chosen_nodes:
+            # calc neighborhood of v
+            neighborhood_of_v = torch.unique(edge_index[1][edge_index[0] == v])
+            # remove nodes already in ns_union_s
+            neighborhood_of_v = neighborhood_of_v[~torch.isin(neighborhood_of_v, ns_union_s)]
+            # calc expansion factor
+            expansion_factor = neighborhood_of_v.shape[0]
+
+            if expansion_factor > best_node[0]:
+                best_node = (expansion_factor, v)
+        # add best node to chosen nodes
+        chosen_nodes = torch.cat((chosen_nodes, torch.tensor([best_node[1]]).type(torch.long).to(device)))
+
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
