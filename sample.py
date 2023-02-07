@@ -132,7 +132,7 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
             ranked_neighbors = ranked_neighbors[:, torch.argsort(ranked_neighbors[1, :], descending=True)]
 
             # select the k top ones
-            k_top = ranked_neighbors[0][:int(ranked_neighbors[0].shape[0] * p)]
+            k_top = ranked_neighbors[0][:int(ranked_neighbors[0].shape[0] * p)].type(torch.long).to(device)
             sample = torch.cat([sample, torch.tensor([w]).to(device), k_top])
 
             # add the other nodes as new_seeds
@@ -220,16 +220,16 @@ def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batc
     # alternative: for k in range(MAX_ITER):
     while chosen_nodes.numel() < batch_size:
         start_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
-        chosen_nodes = torch.concat([chosen_nodes, start_node], 0)
+        chosen_nodes = torch.concat([chosen_nodes, start_node], 0).type(torch.long).to(device)
         i = 0
         while (i < K):
             i += 1
             for node in start_node:
-                neighbors = edge_index[1, edge_index[0] == node]
+                neighbors = edge_index[1, edge_index[0] == node].type(torch.long).to(device)
                 # select fixed number of nodes, if there are not enough, select all neighbors:
                 if not (neighbors.numel() < FIXED_NC):
                     neighbors = torch.tensor(np.random.choice(neighbors.cpu(), FIXED_NC, replace=False)).type(torch.long).to(device)
-                chosen_nodes = torch.concat([chosen_nodes, neighbors])
+                chosen_nodes = torch.concat([chosen_nodes, neighbors]).type(torch.long).to(device)
                 start_node = neighbors
 
     return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
