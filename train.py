@@ -53,18 +53,16 @@ parser.add_argument('--tau', type=float, default=1.0,
                     help='temperature for Ncontrast loss')
 # TODO adapt to all that are actually implemented and add description to README
 parser.add_argument('--sampler', type=str,
-                    choices=['random_batch', 'random_pagerank', 'random_degree_higher', 'random_degree_lower',
-                             'rank_degree',
-                             'list', 'negative', 'random_edge', 'random_node_edge',
+                    choices=['random_batch', 'random_degree_higher', 'random_degree_lower',
+                             'rank_degree', 'negative', 'random_edge', 'random_node_edge',
                              'hybrid_edge', 'fixed_size_neighbor', 'random_node_neighbor',
-                             'random_walk', 'random_jump', 'forest_fire', 'frontier',
+                             'random_walk', 'random_jump', 'frontier',
                              'snowball'],
                     default='random_batch',
                     help="sampler to use to generate a batch. Possible options are: 'random_batch', "
-                         "'random_pagerank', 'random_degree_higher', 'random_degree_lower', 'rank_degree', 'list', "
-                         "'negative', 'random_edge',"
+                         "'random_degree_higher', 'random_degree_lower', 'rank_degree', 'negative', 'random_edge', "
                          "'random_node_edge', 'hybrid_edge', 'fixed_size_neighbor', 'random_node_neighbor', "
-                         "'random_walk', 'random_jump', 'forest_fire', 'frontier', 'snowball'. See the README for more "
+                         "'random_walk', 'random_jump', 'frontier', 'snowball'. See the README for more"
                          "information")
 parser.add_argument('--no-wandb', action='store_true', default=False,
                     help='Disables Weights & Biases logging.')
