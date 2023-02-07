@@ -27,8 +27,6 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
 
     if sampler == 'random_batch':
         return random_batch(adj_label, idx_train, features, labels, batch_size, device)
-    elif sampler == 'random_pagerank':
-        return random_pagerank(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_degree_higher':
         return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, dataset,
                              higher_prob=True)
@@ -37,8 +35,6 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
                              higher_prob=False)
     elif sampler == 'rank_degree':
         return rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device)
-    elif sampler == 'list':
-        return list_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'negative':
         return negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_edge':
@@ -55,8 +51,6 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
         return random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_jump':
         return random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, device)
-    elif sampler == 'forest_fire':
-        return forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'frontier':
         return frontier(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'snowball':
@@ -88,10 +82,6 @@ def random_batch(adj_label, idx_train, features, labels, batch_size, device):
     """
     rand_indx = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), batch_size)).type(torch.long).to(device)
     return idx_to_adj(rand_indx, idx_train, adj_label, features, labels, batch_size, device)
-
-
-def random_pagerank(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    raise NotImplementedError('Not Implemented sampler!')
 
 
 def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, dataset,
@@ -159,10 +149,6 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
     sample = sample[:batch_size]
 
     return idx_to_adj(sample, idx_train, adj_label, features, labels, batch_size, device)
-
-
-def list_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    raise NotImplementedError('Not Implemented sampler!')
 
 
 def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device):
@@ -340,10 +326,6 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
     sampled_nodes = torch.tensor(sampled_nodes).type(torch.long).to(device)
 
     return idx_to_adj(sampled_nodes, idx_train, adj_label, features, labels, batch_size, device)
-
-
-def forest_fire(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    raise NotImplementedError('Not Implemented sampler!')
 
 
 def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, device):
