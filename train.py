@@ -158,19 +158,19 @@ def main():
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             test_acc = tmp_test_acc
-
-    log_file = open(r"log.txt", encoding="utf-8", mode="a+")
-    with log_file as file_to_be_write:
-        print('tau', 'order',
-              'batch_size', 'hidden',
-              'alpha', 'lr',
-              'weight_decay', 'data',
-              'test_acc', file=file_to_be_write, sep=',')
-        print(args.tau, args.order,
-              args.batch_size, args.hidden,
-              args.alpha, args.lr,
-              args.weight_decay, args.data,
-              test_acc.item(), file=file_to_be_write, sep=',')
+    if not args.no_wandb:
+        log_file = open(r"log.txt", encoding="utf-8", mode="a+")
+        with log_file as file_to_be_write:
+            print('tau', 'order',
+                  'batch_size', 'hidden',
+                  'alpha', 'lr',
+                  'weight_decay', 'data',
+                  'test_acc', file=file_to_be_write, sep=',')
+            print(args.tau, args.order,
+                  args.batch_size, args.hidden,
+                  args.alpha, args.lr,
+                  args.weight_decay, args.data,
+                  test_acc.item(), file=file_to_be_write, sep=',')
 
 
 if __name__ == "__main__":
