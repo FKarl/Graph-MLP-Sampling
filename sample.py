@@ -331,7 +331,7 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
 def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     chosen_nodes = torch.tensor([]).type(torch.long).to(device)
-    m = 10  # TODO tweak parameter and mention in section 3
+    m = 10 if idx_train.shape[0] >= 10 else idx_train.shape[0]  # TODO tweak parameter and mention in section 3
     # init L with m randomly chosen nodes (uniformly)
     L = np.random.choice(np.arange(adj_label.shape[0]), m)
     while True:
@@ -360,7 +360,7 @@ def snowball(edge_index, adj_label, idx_train, features, labels, batch_size, dev
     chosen_nodes = v  # init chosen nodes with v
 
     while chosen_nodes.shape[0] <= batch_size:
-        best_node = (-1, 0)  # (expansion factor, node)
+        best_node = (-1, -1)  # (expansion factor, node)
         # calc N(S)
         neighborhood_of_chosen_nodes = torch.unique(edge_index[1][torch.isin(edge_index[0], chosen_nodes)])
         neighborhood_of_chosen_nodes = torch.unique(neighborhood_of_chosen_nodes)
