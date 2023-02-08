@@ -334,10 +334,14 @@ def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, dev
     m = 10 if idx_train.shape[0] >= 10 else idx_train.shape[0]  # TODO tweak parameter and mention in section 3
     # init L with m randomly chosen nodes (uniformly)
     L = np.random.choice(np.arange(adj_label.shape[0]), m)
-    while True:
+    # For to enshure maximum of batch_size nodes are chosen and prevent infinite loop
+    for iteration in range(batch_size):
         # calculate the degree of each node in L
         degrees = np.array([edge_index[0][edge_index[1] == node].shape[0] for node in L])
         sum_of_degrees = degrees.sum()
+        # if sum_of_degrees is 0 then all nodes in L have no neighbors and we can't sample any more nodes
+        if sum_of_degrees == 0:
+            break
         # select random node u from L with probability degree(u)/sum_v in L degree(v)
         u = np.random.choice(L, p=[d / sum_of_degrees for d in degrees])
         # select random neighbor v of u
