@@ -110,7 +110,6 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
                         'option.')
     print('DEBUG: Finished creating dataset')
     adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
-    print('DEBUG: Finished creating dataset')
 
     adj, _ = preprocess_dataset(adj, normalization=normalization)
     print('DEBUG: Finished preprocessing dataset')
