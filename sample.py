@@ -25,13 +25,21 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
 
     device = torch.device('cuda' if cuda else 'cpu')
 
+    nodes = torch.unique(edge_index[0])
+    # calculate and save the degree of all nodes
+    if exists('data/degree_' + dataset + '.npy'):
+        degrees = np.load('data/degree_' + dataset + '.npy')
+    else:
+        degrees = np.array([edge_index[0][edge_index[1] == node].shape[0] for node in nodes])
+        np.save('data/degree_' + dataset + '.npy', degrees)
+
     if sampler == 'random_batch':
         return random_batch(adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_degree_higher':
-        return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, dataset,
+        return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees,
                              higher_prob=True)
     elif sampler == 'random_degree_lower':
-        return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, dataset,
+        return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees,
                              higher_prob=False)
     elif sampler == 'rank_degree':
         return rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device)
@@ -84,15 +92,8 @@ def random_batch(adj_label, idx_train, features, labels, batch_size, device):
     return idx_to_adj(rand_indx, idx_train, adj_label, features, labels, batch_size, device)
 
 
-def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, dataset,
-                  higher_prob=True):
+def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees, higher_prob=True):
     nodes = torch.unique(edge_index[0])
-    # calculate and save the degree of all nodes
-    if exists('data/degree_' + dataset + '.npy'):
-        degrees = np.load('data/degree_' + dataset + '.npy')
-    else:
-        degrees = np.array([edge_index[0][edge_index[1] == node].shape[0] for node in nodes])
-        np.save('data/degree_' + dataset + '.npy', degrees)
     total_degree = degrees.sum()
     if higher_prob:  # select nodes based on degree; higher degree ==> HIGHER selection probability
         selected_nodes = torch.tensor(
