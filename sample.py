@@ -97,12 +97,15 @@ def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size
     total_degree = degrees.sum()
     if higher_prob:  # select nodes based on degree; higher degree ==> HIGHER selection probability
         selected_nodes = torch.tensor(
-            np.random.choice(nodes.cpu(), batch_size, p=[deg / total_degree for deg in degrees])).type(torch.long).to(device)
+            np.random.choice(nodes.cpu(), batch_size, p=[deg / total_degree for deg in degrees])).type(torch.long).to(
+            device)
     else:  # select nodes based on degree; higher degree ==> LOWER selection probability
+        # calculate inverse degrees and sum them
         inverse_degree = [1 - deg / total_degree for deg in degrees]
         inverse_sum = sum(inverse_degree)
         selected_nodes = torch.tensor(
-            np.random.choice(nodes.cpu(), batch_size, p=[deg / inverse_sum for deg in inverse_degree])).type(torch.long).to(
+            np.random.choice(nodes.cpu(), batch_size, p=[deg / inverse_sum for deg in inverse_degree])).type(
+            torch.long).to(
             device)
 
     return idx_to_adj(selected_nodes, idx_train, adj_label, features, labels, batch_size, device)
@@ -165,9 +168,12 @@ def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_
 
 
 def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, from_hybrid=False):
+    # select batch_size / 2 edges
     chosen_edges = torch.tensor(np.random.choice(np.arange(edge_index.shape[1]), int(batch_size / 2))).type(
         torch.long).to(device)
+    # select and filter all nodes connected to the edges
     chosen_nodes = torch.unique(edge_index[:, chosen_edges]).to(device)
+    # aggregate and return if sampler was used stand-alone, otherwise return only the nodes
     if not from_hybrid:
         return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
     else:
@@ -176,13 +182,18 @@ def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
 def random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, from_hybrid=False):
     chosen_nodes = []
+    # select batch_size / 2 nodes
     rand_indx = np.random.choice(np.arange(adj_label.shape[0]), int(batch_size / 2))
     for i in rand_indx:
+        # for every node get connected neighbors ...
         connected_nodes = torch.tensor(edge_index[1, edge_index[0] == i]).type(torch.long).to(device)
+        # ... and choose and add a neighbor to the sample
         new_node = connected_nodes[np.random.choice(np.arange(connected_nodes.shape[0]))]
         chosen_nodes.append(new_node)
+    # convert to torch Tensor and filter duplicates
     chosen_nodes = torch.unique(
         torch.cat((torch.tensor(rand_indx), torch.tensor(chosen_nodes))).type(torch.long).to(device))
+    # aggregate and return if sampler was used stand-alone, otherwise return only the nodes
     if not from_hybrid:
         return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
     else:
@@ -195,13 +206,15 @@ def hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, 
     choices = torch.tensor(
         np.random.choice(2, batch_size, p=[random_node_edge_prob, 1 - random_node_edge_prob])).type(
         torch.long).to(device)
-    # Get nodes using both random_edge and random_node_edge
+    # Get nodes using both random_edge and random_node_edge; We do sample too many nodes (2 * batch_size) but this is
+    # faster than sampling a single node batch_size times
     random_edges = random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, True)
     random_node_edges = random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, True)
 
     # Select random nodes according to choices, or all nodes if there are less than chosen
-    random_edges = random_edges[torch.randperm(min(len(choices[choices == 1]), len(random_edges)))]
-    random_node_edges = random_node_edges[torch.randperm(min(len(choices[choices == 0]), len(random_node_edges)))]
+    random_edges = random_edges[np.random.permutation(min(len(choices[choices == 1]), len(random_edges)))]
+    random_node_edges = random_node_edges[
+        np.random.permutation(min(len(choices[choices == 0]), len(random_node_edges)))]
 
     chosen_nodes = torch.unique(torch.cat((random_edges, random_node_edges))).type(torch.long).to(device)
     return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
@@ -229,7 +242,8 @@ def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batc
                 neighbors = edge_index[1, edge_index[0] == node].type(torch.long).to(device)
                 # select fixed number of nodes, if there are not enough, select all neighbors:
                 if not (neighbors.numel() < FIXED_NC):
-                    neighbors = torch.tensor(np.random.choice(neighbors.cpu(), FIXED_NC, replace=False)).type(torch.long).to(device)
+                    neighbors = torch.tensor(np.random.choice(neighbors.cpu(), FIXED_NC, replace=False)).type(
+                        torch.long).to(device)
                 chosen_nodes = torch.concat([chosen_nodes, neighbors]).type(torch.long).to(device)
                 start_node = neighbors
 
@@ -338,6 +352,7 @@ def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, dev
     L = np.random.choice(np.arange(adj_label.shape[0]), m)
     # For to enshure maximum of batch_size nodes are chosen and prevent infinite loop
     for iteration in range(batch_size):
+        # TODO @Fabi pass degree as parameter and use that instead
         # calculate the degree of each node in L
         degrees = np.array([edge_index[0][edge_index[1] == node].shape[0] for node in L])
         sum_of_degrees = degrees.sum()
@@ -353,6 +368,7 @@ def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, dev
         v = outgoing_nodes[rand_idx].cpu()
         # replace u with v in L
         L = np.where(L == u, v, L)
+        # TODO @Fabi isn't u always in the chosen nodes? This would lead to many duplicates and too early stop, no?
         # add u and v to chosen nodes
         chosen_nodes = torch.unique(torch.cat((chosen_nodes, torch.tensor([u, v]).type(torch.long).to(device))))
         if chosen_nodes.shape[0] >= batch_size:
@@ -369,6 +385,7 @@ def snowball(edge_index, adj_label, idx_train, features, labels, batch_size, dev
         best_node = (-1, -1)  # (expansion factor, node)
         # calc N(S)
         neighborhood_of_chosen_nodes = torch.unique(edge_index[1][torch.isin(edge_index[0], chosen_nodes)])
+        # TODO @Fabi shouldn't this be unique already?
         neighborhood_of_chosen_nodes = torch.unique(neighborhood_of_chosen_nodes)
         ns_union_s = torch.unique(torch.cat((neighborhood_of_chosen_nodes, chosen_nodes)))
         # Select new node v ∈ N (S)
