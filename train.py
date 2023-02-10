@@ -171,6 +171,7 @@ def main():
                   args.alpha, args.lr,
                   args.weight_decay, args.data,
                   test_acc.item(), file=file_to_be_write, sep=',')
+            wandb.log({"final_acc_test": test_acc.item()})
 
 
 if __name__ == "__main__":
