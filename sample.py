@@ -352,7 +352,7 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
 
 def frontier(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees):
-    m = 20 if idx_train.shape[0] >= 20 else idx_train.shape[0]  # TODO Mention in section 3
+    m = 100 if idx_train.shape[0] >= 100 else idx_train.shape[0]
     # init L with m randomly chosen nodes (uniformly)
     L = np.random.choice(np.arange(adj_label.shape[0]), m)
     chosen_nodes = torch.tensor(L).type(torch.long).to(device)
