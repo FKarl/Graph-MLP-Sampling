@@ -331,29 +331,30 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
     # TODO @Jan should be done with torch tensors
     c = 0.15  # Probability to jump to a random node anywher in the graph
     # select random node as starting point:
-    random_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
-    current_node = random_node
-    sampled_nodes = random_node
+    random_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
+    current_node = random_node.clone().detach().to(device)
+    sampled_nodes = random_node.clone().detach().to(device)
 
     # TODO @Jan could be done with for iteration in range(batch_size) to ensure its always less than batch_size as you always add one node
-    while sampled_nodes.size < batch_size:
+    while sampled_nodes.numel() < batch_size:
 
-        neighbors = edge_index[1, edge_index[0] == current_node[0]].cpu().numpy()
-
-        if len(neighbors) > 0:
+        neighbors = edge_index[1, edge_index[0] == current_node[0]].to(device)
+        if neighbors.numel() > 0:
             # generate probability array for choosing the next node
-            prob = np.ndarray((len(neighbors) + 1))
-            prob[:] = (1 - c) / (len(neighbors))
+            prob = np.ndarray((neighbors.numel() + 1))
+            prob[:] = (1 - c) / (neighbors.numel())
             prob[0] = c
+            prob = torch.tensor(prob).to(device)
+
             # walk to one neighbor or jump to random node
-            random_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
-            current_node = np.array(
-                [np.random.choice(np.concatenate([random_node, neighbors]), p=prob)])
+            random_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
+            current_node = torch.tensor(
+                [np.random.choice(torch.concat([random_node, neighbors]), p=prob)]).to(device)
         else:
-            current_node = np.random.choice(np.arange(adj_label.shape[0]), 1)
+            current_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
         # add the new current node to the sample
         if not (current_node[0] in sampled_nodes):
-            sampled_nodes = np.concatenate([sampled_nodes, current_node])
+            sampled_nodes = torch.concat([sampled_nodes, current_node]).to(device)
 
     sampled_nodes = torch.tensor(sampled_nodes).type(torch.long).to(device)
 
