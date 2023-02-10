@@ -147,6 +147,10 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
         seeds = torch.unique(new_seeds, sorted=False).type(torch.long).to(device)
         sample = torch.unique(sample, sorted=False).type(torch.long).to(device)
 
+        # remove all nodes from the graph we already sampled:
+        mask = ~torch.isin(edge_index[1,:], sample)
+        edge_index = edge_index[:,mask]
+
         # if no seed has a degree >1 generate new random seeds:
         if not any(torch.tensor(edge_index[0, edge_index[0] == node.item()]).shape[0] > 1 for node in seeds):
             seeds = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), s)).type(torch.long).to(device)
