@@ -1,6 +1,14 @@
 # How to run a script on the unicluster.
 This is a quick tutorial on how to run Graph-MLP on the [BwUniCluster2.0](https://www.scc.kit.edu/en/services/bwUniCluster_2.0.php) service.
 
+## Python version
+BwUniCluster uses Python 3.6 by default. Pytorch requires at least Python 3.7.
+Load Python 3.8 by running
+```shell
+module load devel/python/3.8.6_gnu_10.2
+```
+> IMPORTANT: The python version is not persisted! Every time you reconnect you need to run the command above BEFORE activating the virtual environment!
+
 ## Setup
 First, create and activate a virtual environment using
 ```shell
