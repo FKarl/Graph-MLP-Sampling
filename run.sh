@@ -11,7 +11,7 @@ if [ "$1" != "" ]; then
     DATASET="$1"
 fi
 
-for samp in random_batch random_degree_higher random_degree_lower rank_degree negative random_edge random_node_edge hybrid_edge fixed_size_neighbor random_node_neighbor random_walk random_jump frontier snowball
+for samp in random_batch random_degree_higher random_degree_lower rank_degree negative random_edge random_node_edge hybrid_edge fixed_size_neighbor random_node_neighbor random_walk random_jump frontier
 do
   for _ in {1..5}
   do
