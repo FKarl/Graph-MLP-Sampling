@@ -67,7 +67,9 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
 
 def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size, device):
     node_index = node_index[:batch_size]
-    if len(idx_train) < batch_size:
+    if node_index.shape[0] < len(idx_train):
+        new_idx = list(range(0, len(node_index)))
+    elif len(idx_train) < batch_size:
         node_index[0:len(idx_train)] = idx_train
         new_idx = list(range(0, len(idx_train)))
     else:
@@ -266,8 +268,6 @@ def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, bat
 
 
 def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # if after max_steps the batch size is not filled change start node
-    max_steps = batch_size * 10
     # Jump back to start probability
     c = 0.15
     # select random node as starting point:
@@ -283,19 +283,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
         sampled_nodes = start_node.clone().detach().to(device)
         neighbors = edge_index[1, edge_index[0] == current_node].to(device)
 
-    while sampled_nodes.numel() < batch_size:
-
-        max_steps -= 1
-        # in case batch_size cant be filled start over with a new start_node
-        if max_steps < 0:
-            old_start = start_node.clone().detach()
-            while (old_start == start_node) or (neighbors.numel() == 0):  # avoid same start and no neighbor
-                start_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(
-                    device)
-                neighbors = edge_index[1, edge_index[0] == start_node[0]].to(device)
-            current_node = start_node.clone().detach()[0].to(device)
-            sampled_nodes = start_node.clone().detach().to(device)
-            max_steps = (batch_size * 10) - 1
+    for i in range(batch_size):
 
         neighbors = edge_index[1, edge_index[0] == current_node].to(device)
 
