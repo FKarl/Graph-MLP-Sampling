@@ -123,11 +123,13 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
         new_seeds = torch.Tensor(0).type(torch.long).to(device)
 
         for w in seeds:
-            neighbors = torch.tensor(edge_index[1, edge_index[0] == w]).type(torch.long).to(device)
+            neighbors = torch.tensor(edge_index[1, edge_index[0] == w]).type(torch.long).cpu()
             if neighbors.numel() == 1:
                 rank = torch.tensor([degrees[neighbors]]).to(device)
             else:
                 rank = torch.tensor(degrees[neighbors]).to(device)
+
+            neighbors = neighbors.to(device)
 
             # combine nodes with their rank degree (same format as edge_index)
             ranked_neighbors = torch.stack((neighbors, rank), 0).type(torch.long).to(device)
