@@ -35,10 +35,10 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
     if sampler == 'random_batch':
         return random_batch(adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_degree_higher':
-        return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees,
+        return random_degree(adj_label, idx_train, features, labels, batch_size, device, degrees,
                              higher_prob=True)
     elif sampler == 'random_degree_lower':
-        return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees,
+        return random_degree(adj_label, idx_train, features, labels, batch_size, device, degrees,
                              higher_prob=False)
     elif sampler == 'rank_degree':
         return rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees)
@@ -93,7 +93,7 @@ def random_batch(adj_label, idx_train, features, labels, batch_size, device):
     return idx_to_adj(rand_indx, idx_train, adj_label, features, labels, batch_size, device)
 
 
-def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees, higher_prob=True):
+def random_degree(adj_label, idx_train, features, labels, batch_size, device, degrees, higher_prob=True):
     nodes = np.arange(adj_label.shape[0])
     total_degree = degrees.sum()
     if higher_prob:  # select nodes based on degree; higher degree ==> HIGHER selection probability
@@ -308,7 +308,6 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
 def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     c = 0.15  # Probability to jump to a random node anywhere in the graph
-    # select random node as starting point:
     # select random node as starting point:
     random_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
     current_node = random_node.clone().detach()[0].to(device)
