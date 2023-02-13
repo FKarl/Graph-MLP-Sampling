@@ -303,7 +303,6 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
         prob = np.ndarray((neighbors.numel() + 1))
         prob[:] = (1 - c) / (neighbors.numel())
         prob[0] = c
-        prob = torch.tensor(prob).to(device)
 
         # walk to one neighbor or the start_node
         merged_nodes = torch.concat([start_node, neighbors])
@@ -333,7 +332,6 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
             prob = np.ndarray((neighbors.numel() + 1))
             prob[:] = (1 - c) / (neighbors.numel())
             prob[0] = c
-            prob = torch.tensor(prob).to(device)
 
             # walk to one neighbor or jump to random node
             random_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
