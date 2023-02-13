@@ -42,7 +42,7 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
         return random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees,
                              higher_prob=False)
     elif sampler == 'rank_degree':
-        return rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device)
+        return rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees)
     elif sampler == 'negative':
         return negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_edge':
@@ -113,7 +113,7 @@ def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size
     return idx_to_adj(selected_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 
-def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device):
+def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees):
     s = 3  # number of randomly selected nodes as a starting point
     p = .35  # probability value defines the top-k of each ranking list
     seeds = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), s)).type(torch.long).to(device)
@@ -124,11 +124,10 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
         for w in seeds:
             neighbors = torch.tensor(edge_index[1, edge_index[0] == w]).type(torch.long).to(device)
-            rank = torch.Tensor(neighbors.shape[0]).type(torch.long).to(device)
-
-            # Calculates the degree of all neighbors, saves them in rank:
-            for i in range(neighbors.shape[0]):
-                rank[i] = torch.tensor(edge_index[0, edge_index[0] == neighbors[i]]).shape[0]
+            if neighbors.numel() == 1:
+                rank = torch.tensor([degrees[neighbors]]).to(device)
+            else:
+                rank = torch.tensor(degrees[neighbors]).to(device)
 
             # combine nodes with their rank degree (same format as edge_index)
             ranked_neighbors = torch.stack((neighbors, rank), 0).type(torch.long).to(device)
