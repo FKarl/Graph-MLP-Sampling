@@ -25,12 +25,11 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
 
     device = torch.device('cuda' if cuda else 'cpu')
 
-    nodes = torch.unique(edge_index[0])
     # calculate and save the degree of all nodes
     if exists('data/degree_' + dataset + '.npy'):
         degrees = np.load('data/degree_' + dataset + '.npy')
     else:
-        degrees = np.array([edge_index[0][edge_index[1] == node].shape[0] for node in nodes])
+        degrees = np.array([edge_index[0][edge_index[1] == node].shape[0] for node in np.arange(adj_label.shape[0])])
         np.save('data/degree_' + dataset + '.npy', degrees)
 
     if sampler == 'random_batch':
@@ -191,8 +190,9 @@ def random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_s
         # for every node get connected neighbors ...
         connected_nodes = torch.tensor(edge_index[1, edge_index[0] == i]).type(torch.long).to(device)
         # ... and choose and add a neighbor to the sample
-        new_node = connected_nodes[np.random.choice(np.arange(connected_nodes.shape[0]))]
-        chosen_nodes.append(new_node)
+        if connected_nodes.numel() > 0:
+            new_node = connected_nodes[np.random.choice(np.arange(connected_nodes.shape[0]))]
+            chosen_nodes.append(new_node)
     # convert to torch Tensor and filter duplicates
     chosen_nodes = torch.unique(
         torch.cat((torch.tensor(rand_indx), torch.tensor(chosen_nodes))).type(torch.long).to(device))
