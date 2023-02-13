@@ -114,15 +114,12 @@ def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size
 def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     s = 3  # number of randomly selected nodes as a starting point
     p = .35  # probability value defines the top-k of each ranking list
-    print('\n',edge_index[0].numel())
     seeds = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), s)).type(torch.long).to(device)
     sample = torch.Tensor(0).type(torch.long).to(device)
 
     while sample.shape[0] <= batch_size:
         new_seeds = torch.Tensor(0).type(torch.long).to(device)
 
-        # TODO @Jan you could break out of this loop if the sample is already larger than batch_size. (I think)
-        # TODO or is it a problem with the duplicate nodes?
         for w in seeds:
             neighbors = torch.tensor(edge_index[1, edge_index[0] == w]).type(torch.long).to(device)
             rank = torch.Tensor(neighbors.shape[0]).type(torch.long).to(device)
@@ -148,16 +145,12 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
         sample = torch.unique(sample, sorted=False).type(torch.long).to(device)
 
         # remove all nodes from the graph we already sampled:
-        mask = ~torch.isin(edge_index[1,:], sample)
-        edge_index = edge_index[:,mask]
-        print(edge_index[0].numel())
+        mask = ~torch.isin(edge_index[1, :], sample)
+        edge_index = edge_index[:, mask]
 
         # if no seed has a degree >1 generate new random seeds:
         if not any(torch.tensor(edge_index[0, edge_index[0] == node.item()]).shape[0] > 1 for node in seeds):
             seeds = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), s)).type(torch.long).to(device)
-
-    # TODO: to keep sample size = batch_size remove the latest added nodes?
-    sample = sample[:batch_size]
 
     return idx_to_adj(sample, idx_train, adj_label, features, labels, batch_size, device)
 
@@ -243,7 +236,7 @@ def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batc
         start_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
         chosen_nodes = torch.concat([chosen_nodes, start_node], 0).type(torch.long).to(device)
         i = 0
-        while (i < K):
+        while i < K:
             i += 1
             for node in start_node:
                 neighbors = edge_index[1, edge_index[0] == node].type(torch.long).to(device)
@@ -273,9 +266,8 @@ def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, bat
 
 
 def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Jan should be done with torch tensors
     # if after max_steps the batch size is not filled change start node
-    max_steps = batch_size * 100
+    max_steps = batch_size * 10
     # Jump back to start probability
     c = 0.15
     # select random node as starting point:
@@ -291,7 +283,6 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
         sampled_nodes = start_node.clone().detach().to(device)
         neighbors = edge_index[1, edge_index[0] == current_node].to(device)
 
-    # TODO @Jan could be done with for iteration in range(batch_size) to ensure its always less than batch_size as you always add one node
     while sampled_nodes.numel() < batch_size:
 
         max_steps -= 1
@@ -299,17 +290,17 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
         if max_steps < 0:
             old_start = start_node.clone().detach()
             while (old_start == start_node) or (neighbors.numel() == 0):  # avoid same start and no neighbor
-                start_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
+                start_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(
+                    device)
                 neighbors = edge_index[1, edge_index[0] == start_node[0]].to(device)
             current_node = start_node.clone().detach()[0].to(device)
             sampled_nodes = start_node.clone().detach().to(device)
-            max_steps = (batch_size * 100) - 1
+            max_steps = (batch_size * 10) - 1
 
         neighbors = edge_index[1, edge_index[0] == current_node].to(device)
 
         # generate probability array for choosing the next node
         prob = np.ndarray((neighbors.numel() + 1))
-        # TODO: Should be fine cause start node is checked for len(neighbors)=0
         prob[:] = (1 - c) / (neighbors.numel())
         prob[0] = c
         prob = torch.tensor(prob).to(device)
@@ -328,14 +319,12 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
 
 def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # TODO @Jan should be done with torch tensors
-    c = 0.15  # Probability to jump to a random node anywher in the graph
+    c = 0.15  # Probability to jump to a random node anywhere in the graph
     # select random node as starting point:
     random_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
     current_node = random_node.clone().detach()[0].to(device)
     sampled_nodes = random_node.clone().detach().to(device)
 
-    # TODO @Jan could be done with for iteration in range(batch_size) to ensure its always less than batch_size as you always add one node
     while sampled_nodes.numel() < batch_size:
         neighbors = edge_index[1, edge_index[0] == current_node].to(device)
 
