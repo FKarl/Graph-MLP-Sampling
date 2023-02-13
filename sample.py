@@ -316,7 +316,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
         # walk to one neighbor or the start_node
         current_node = torch.tensor(
-            [np.random.choice(torch.concat([start_node, neighbors]), p=prob)]).type(torch.long).to(device)
+            [np.random.choice(torch.concat([start_node, neighbors]).cpu(), p=prob)]).type(torch.long).to(device)
 
         # add the new current node to the sample
         if not (current_node[0].item() in sampled_nodes):
@@ -349,7 +349,7 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
             # walk to one neighbor or jump to random node
             random_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
             current_node = torch.tensor(
-                [np.random.choice(torch.concat([random_node, neighbors]), p=prob)]).to(device)
+                [np.random.choice(torch.concat([random_node, neighbors]).cpu(), p=prob)]).to(device)
         else:
             current_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
         # add the new current node to the sample
