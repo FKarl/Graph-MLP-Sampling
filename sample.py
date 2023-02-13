@@ -310,7 +310,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
         # add the new current node to the sample
         if not (current_node in sampled_nodes):
-            sampled_nodes = torch.concat([sampled_nodes, torch.tensor([current_node])]).to(device)
+            sampled_nodes = torch.concat([sampled_nodes, torch.tensor([current_node]).to(device)]).to(device)
 
     sampled_nodes = torch.tensor(sampled_nodes).type(torch.long).to(device)
 
@@ -341,7 +341,7 @@ def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, 
             current_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
         # add the new current node to the sample
         if not (current_node in sampled_nodes):
-            sampled_nodes = torch.concat([sampled_nodes, torch.tensor([current_node])]).to(device)
+            sampled_nodes = torch.concat([sampled_nodes, torch.tensor([current_node]).to(device)]).to(device)
 
     sampled_nodes = torch.tensor(sampled_nodes).type(torch.long).to(device)
 
