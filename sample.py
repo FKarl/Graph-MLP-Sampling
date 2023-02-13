@@ -94,18 +94,18 @@ def random_batch(adj_label, idx_train, features, labels, batch_size, device):
 
 
 def random_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees, higher_prob=True):
-    nodes = torch.unique(edge_index[0])
+    nodes = np.arange(adj_label.shape[0])
     total_degree = degrees.sum()
     if higher_prob:  # select nodes based on degree; higher degree ==> HIGHER selection probability
         selected_nodes = torch.tensor(
-            np.random.choice(nodes.cpu(), batch_size, p=[deg / total_degree for deg in degrees])).type(torch.long).to(
+            np.random.choice(nodes, batch_size, p=[deg / total_degree for deg in degrees])).type(torch.long).to(
             device)
     else:  # select nodes based on degree; higher degree ==> LOWER selection probability
         # calculate inverse degrees and sum them
         inverse_degree = [1 - deg / total_degree for deg in degrees]
         inverse_sum = sum(inverse_degree)
         selected_nodes = torch.tensor(
-            np.random.choice(nodes.cpu(), batch_size, p=[deg / inverse_sum for deg in inverse_degree])).type(
+            np.random.choice(nodes, batch_size, p=[deg / inverse_sum for deg in inverse_degree])).type(
             torch.long).to(
             device)
 
@@ -308,6 +308,7 @@ def random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, 
 
 def random_jump(edge_index, adj_label, idx_train, features, labels, batch_size, device):
     c = 0.15  # Probability to jump to a random node anywhere in the graph
+    # select random node as starting point:
     # select random node as starting point:
     random_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
     current_node = random_node.clone().detach()[0].to(device)
