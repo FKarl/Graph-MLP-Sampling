@@ -30,6 +30,11 @@ Our implementation uses [Weights & Biases](https://wandb.ai/site) to easily trac
 To change the entity (personal or team account) and the project, change the variables at the top of [train.py](./train.py).
 To disable logging in a run, add the `--no-wandb` flag.
 
+To track runs you have to log in to WandB on your device. To do this activate the virtual environment and run 
+```
+wandb login
+```
+
 
 ## Unicluster
 Create a script or use an existing one, and define your SBATCH variables at the very top (see also [run.sh](./run.sh)).
