@@ -12,8 +12,8 @@ if [ "$1" != "" ]; then
     DATASET="$1"
 fi
 
-# model 'warm-up'
-python3 train.py --data=cora --epochs=50 --hidden=256 --dropout=0.6 --lr=0.001 --weight_decay=5e-3 --alpha=100.0 --batch_size=200 --order=3 --tau=2 --sampler=random_batch --no-wandb
+# model 'warm-up' and potential pre-computation
+python3 train.py --data="$DATASET" --epochs=50 --hidden=256 --dropout=0.6 --lr=0.001 --weight_decay=5e-3 --alpha=100.0 --batch_size=200 --order=3 --tau=2 --sampler=random_batch --no-wandb
 
 for samp in random_batch random_degree_higher random_degree_lower rank_degree negative random_edge random_node_edge hybrid_edge fixed_size_neighbor random_node_neighbor random_walk random_jump frontier
 do
