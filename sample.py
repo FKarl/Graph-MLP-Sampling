@@ -7,6 +7,7 @@ import torch_geometric
 
 def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=2000, sampler='random_batch', cuda=True,
               dataset='cora'):
+    original_idx = None
     # if batch_size is smaller than len(idx_train), remove everything except idx_train
     if batch_size < len(idx_train):
         if adj_label.device == torch.device('cpu'):
@@ -21,6 +22,7 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
         if edge_index.numel() == 0:
             raise Exception('Only used training set as batch, but there are no edges in the training set. Raise the '
                             'batch_size above the number of training nodes (' + str(len(idx_train)) + ')')
+        original_idx = idx_train.clone().detach().to(torch.device('cuda' if cuda else 'cpu'))
         idx_train = torch.tensor(list(range(0, batch_size)))
 
     device = torch.device('cuda' if cuda else 'cpu')
@@ -35,21 +37,21 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
     if sampler == 'random_batch':
         return random_batch(adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_degree_higher':
-        return random_degree(adj_label, idx_train, features, labels, batch_size, device, degrees,
-                             higher_prob=True)
+        return random_degree(adj_label, idx_train, features, labels, batch_size, device, degrees, higher_prob=True)
     elif sampler == 'random_degree_lower':
-        return random_degree(adj_label, idx_train, features, labels, batch_size, device, degrees,
-                             higher_prob=False)
+        return random_degree(adj_label, idx_train, features, labels, batch_size, device, degrees, higher_prob=False)
     elif sampler == 'rank_degree':
         return rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, device, degrees)
     elif sampler == 'negative':
-        return negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device)
+        return negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device, original_idx)
     elif sampler == 'random_edge':
-        return random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device)
+        return random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device,
+                           original_idx=original_idx)
     elif sampler == 'random_node_edge':
         return random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'hybrid_edge':
-        return hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device)
+        return hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device,
+                           original_idx=original_idx)
     elif sampler == 'fixed_size_neighbor':
         return fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_node_neighbor':
@@ -64,8 +66,12 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
         return snowball(edge_index, adj_label, idx_train, features, labels, batch_size, device)
 
 
-def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size, device):
+def idx_to_adj(node_index, idx_train, adj_label, features, labels, batch_size, device, original_idx=None):
     node_index = node_index[:batch_size]
+    if original_idx is not None and batch_size < len(original_idx):
+        node_index = torch.tensor([(original_idx == i.item()).nonzero(as_tuple=True)[0].item() for i in node_index]).to(
+            device)
+
     if node_index.shape[0] < len(idx_train):
         new_idx = list(range(0, len(node_index)))
     elif len(idx_train) < batch_size:
@@ -96,6 +102,8 @@ def random_batch(adj_label, idx_train, features, labels, batch_size, device):
 def random_degree(adj_label, idx_train, features, labels, batch_size, device, degrees, higher_prob=True):
     nodes = np.arange(adj_label.shape[0])
     total_degree = degrees.sum()
+    if total_degree == 0:
+        raise Exception('Degree of all nodes is 0. Try a different split and/or sampler.')
     if higher_prob:  # select nodes based on degree; higher degree ==> HIGHER selection probability
         selected_nodes = torch.tensor(
             np.random.choice(nodes, batch_size, p=[deg / total_degree for deg in degrees])).type(torch.long).to(
@@ -157,19 +165,31 @@ def rank_degree(edge_index, adj_label, idx_train, features, labels, batch_size, 
     return idx_to_adj(sample, idx_train, adj_label, features, labels, batch_size, device)
 
 
-def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device):
-    # new edge index = all not existing edges
-    new_edge_index = torch_geometric.utils.negative_sampling(edge_index)
-    new_edge_index = new_edge_index.to(device)
-    # select random batch_size  ((batch_size/2) edges from new_edge_index). So it will be always <= batch_size
-    chosen_edges = torch.tensor(np.random.choice(np.arange(new_edge_index.shape[1]), int(batch_size / 2))).type(
-        torch.long).to(device)
-    chosen_nodes = torch.unique(new_edge_index[:, chosen_edges]).to(device)
+def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_size, device, original_idx):
+    if original_idx is not None and batch_size < len(original_idx):
+        # map the nodes in the test split to 0..len(unique(edge_index)
+        # lowest id in train split == 0 and highest id in train split == len(unique(edge_index)
+        node_list = torch.unique(torch.cat((edge_index[0], edge_index[1]))).tolist()
+        edge_index_tmp = torch.tensor(
+            [[node_list.index(i) for i in edge_index[0]], [node_list.index(j) for j in edge_index[1]]])
+        # new edge index = all not existing edges, limited to batch_size / 2 edges
+        new_edge_index = torch_geometric.utils.negative_sampling(edge_index_tmp,
+                                                                 num_neg_samples=int(batch_size / 2)).to(device)
+        new_edge_index = torch.tensor(
+            [[node_list[i] for i in new_edge_index[0]], [node_list[j] for j in new_edge_index[1]]]).to(device)
+    else:
+        # new edge index = all not existing edges, limited to batch_size / 2 edges
+        new_edge_index = torch_geometric.utils.negative_sampling(edge_index, num_neg_samples=int(batch_size / 2)).to(
+            device)
 
-    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
+    # transform edges to nodes (add all connected nodes to sample)
+    chosen_nodes = torch.unique(new_edge_index[:]).to(device)
+
+    return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device, original_idx)
 
 
-def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, from_hybrid=False):
+def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device,
+                from_hybrid=False, original_idx=None):
     # select batch_size / 2 edges
     chosen_edges = torch.tensor(np.random.choice(np.arange(edge_index.shape[1]), int(batch_size / 2))).type(
         torch.long).to(device)
@@ -177,8 +197,12 @@ def random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, 
     chosen_nodes = torch.unique(edge_index[:, chosen_edges]).to(device)
     # aggregate and return if sampler was used stand-alone, otherwise return only the nodes
     if not from_hybrid:
-        return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
+        return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device, original_idx)
     else:
+        if original_idx is not None and batch_size < len(original_idx):
+            chosen_nodes = torch.tensor(
+                [(original_idx == i.item()).nonzero(as_tuple=True)[0].item() for i in chosen_nodes]).to(
+                device)
         return chosen_nodes
 
 
@@ -203,7 +227,7 @@ def random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_s
         return chosen_nodes
 
 
-def hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device):
+def hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, original_idx):
     random_node_edge_prob = 0.8
     # 0 is Random Node Edge; 1 is Random Edge
     choices = torch.tensor(
@@ -211,8 +235,10 @@ def hybrid_edge(edge_index, adj_label, idx_train, features, labels, batch_size, 
         torch.long).to(device)
     # Get nodes using both random_edge and random_node_edge; We do sample too many nodes (2 * batch_size) but this is
     # faster than sampling a single node batch_size times
-    random_edges = random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, True)
-    random_node_edges = random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device, True)
+    random_edges = random_edge(edge_index, adj_label, idx_train, features, labels, batch_size, device,
+                               from_hybrid=True, original_idx=original_idx)
+    random_node_edges = random_node_edge(edge_index, adj_label, idx_train, features, labels, batch_size,
+                                         device, True)
 
     # Select random nodes according to choices, or all nodes if there are less than chosen
     random_edges = random_edges[np.random.permutation(min(len(choices[choices == 1]), len(random_edges)))]
