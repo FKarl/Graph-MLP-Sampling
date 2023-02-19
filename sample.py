@@ -169,14 +169,18 @@ def negative_sampling(edge_index, adj_label, idx_train, features, labels, batch_
     if original_idx is not None and batch_size < len(original_idx):
         # map the nodes in the test split to 0..len(unique(edge_index)
         # lowest id in train split == 0 and highest id in train split == len(unique(edge_index)
-        node_list = torch.unique(torch.cat((edge_index[0], edge_index[1]))).tolist()
+        node_list = torch.unique(torch.cat((edge_index[0], edge_index[1]))).to(device)
         edge_index_tmp = torch.tensor(
-            [[node_list.index(i) for i in edge_index[0]], [node_list.index(j) for j in edge_index[1]]])
+            [[(node_list == i).nonzero(as_tuple=True)[0] for i in edge_index[0]],
+             [(node_list == j).nonzero(as_tuple=True)[0] for j in edge_index[1]]]).to(device)
         # new edge index = all not existing edges, limited to batch_size / 2 edges
         new_edge_index = torch_geometric.utils.negative_sampling(edge_index_tmp,
                                                                  num_neg_samples=int(batch_size / 2)).to(device)
         new_edge_index = torch.tensor(
             [[node_list[i] for i in new_edge_index[0]], [node_list[j] for j in new_edge_index[1]]]).to(device)
+        if new_edge_index.numel() == 0:
+            raise Exception('It seems the train split has no negative edges. Try a higher train split or re-run the '
+                            'sampler, if you have a random split.')
     else:
         # new edge index = all not existing edges, limited to batch_size / 2 edges
         new_edge_index = torch_geometric.utils.negative_sampling(edge_index, num_neg_samples=int(batch_size / 2)).to(
