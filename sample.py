@@ -55,7 +55,8 @@ def get_batch(adj_label, idx_train, features, edge_index, labels, batch_size=200
     elif sampler == 'fixed_size_neighbor':
         return fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_node_neighbor':
-        return random_node_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device)
+        return random_node_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device,
+                                    original_idx=original_idx)
     elif sampler == 'random_walk':
         return random_walk(edge_index, adj_label, idx_train, features, labels, batch_size, device)
     elif sampler == 'random_jump':
@@ -283,7 +284,7 @@ def fixed_size_neighbor(edge_index, adj_label, idx_train, features, labels, batc
     return idx_to_adj(chosen_nodes, idx_train, adj_label, features, labels, batch_size, device)
 
 
-def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device):
+def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, batch_size, device, original_idx):
     # we select a node uniformly at random together with all of its out-going neighbors.
     # empty tensor for new nodes
     chosen_nodes = torch.tensor([]).type(torch.long).to(device)
@@ -291,6 +292,9 @@ def random_node_neighbor(edge_index, adj_label, idx_train, features, labels, bat
     while True:
         chosen_node = torch.tensor(np.random.choice(np.arange(adj_label.shape[0]), 1)).type(torch.long).to(device)
         outgoing_nodes = edge_index[1][edge_index[0] == chosen_node]
+        if outgoing_nodes.numel() > 0 and original_idx is not None and batch_size < len(original_idx):
+            outgoing_nodes = torch.tensor([(original_idx == i).nonzero(as_tuple=True)[0] for i in outgoing_nodes]).to(
+                device)
         # break if adding the new nodes would exceed the batch size
         if chosen_nodes.shape[0] + outgoing_nodes.shape[0] + 1 >= batch_size:
             break
