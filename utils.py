@@ -61,8 +61,9 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     """
     dataset_str = dataset_str.lower()
     if dataset_str in ['reddit2', 'ogbn-products', 'ogbn-arxiv'] and cuda:
-        print("WARNING: The selected dataset is very large. It will probably not fit on a GPU. If you have an "
-              "extremely powerful CPU and a lot of memory try adding --no-cuda.")
+        print("WARNING: The selected dataset is very large. It will probably not fit on a GPU, so we will calculate "
+              "the adjacency matrix on the CPU and RAM. This can take a long time! To use no GPU at all and run every "
+              "calculation on the CPU and RAM add --no-cuda.")
     if dataset_str in ['cora', 'citeseer', 'pubmed', 'reddit2']:
         dataset = None
         if dataset_str in ['cora', 'citeseer', 'pubmed']:
