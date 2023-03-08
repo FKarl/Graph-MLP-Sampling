@@ -38,11 +38,10 @@ parser.add_argument('--dropout', type=float, default=0.6,
                     help='Dropout rate (1 - keep probability).')
 # TODO adapt to all that are actually implemented and add description to README
 parser.add_argument('--data', type=str,
-                    choices=['cora', 'citeseer', 'pubmed', 'reddit2', 'ogbn-products', 'ogbn-arxiv', 'facebook'],
+                    choices=['cora', 'citeseer', 'pubmed', 'reddit2', 'ogbn-arxiv', 'facebook'],
                     default='cora',
                     help="dataset to be used. Possible options are: 'cora', 'citeseer', 'pubmed', 'reddit2', "
-                         "'ogbn-products', 'ogbn-arxiv', 'facebook'. See the README for more "
-                         "information")
+                         "'ogbn-arxiv', 'facebook'. See the README for more information")
 parser.add_argument('--alpha', type=float, default=2.0,
                     help='To control the ratio of Ncontrast loss')
 parser.add_argument('--batch_size', type=int, default=2048,

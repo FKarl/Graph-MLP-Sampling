@@ -60,7 +60,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     Load All Datasets.
     """
     dataset_str = dataset_str.lower()
-    if dataset_str in ['reddit2', 'ogbn-products', 'ogbn-arxiv'] and cuda:
+    if dataset_str in ['reddit2', 'ogbn-arxiv'] and cuda:
         print("WARNING: The selected dataset is very large. It will probably not fit on a GPU, so we will calculate "
               "the adjacency matrix on the CPU and RAM. This can take a long time! To use no GPU at all and run every "
               "calculation on the CPU and RAM add --no-cuda.")
@@ -80,7 +80,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
         idx_test = mask_to_index(split.test_mask)
         edge_index = split.edge_index
 
-    elif dataset_str in ['ogbn-products', 'ogbn-arxiv']:
+    elif dataset_str in ['ogbn-arxiv']:
         dataset = PygNodePropPredDataset(name=dataset_str)
         split = dataset.get(0)
 
@@ -107,8 +107,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
 
     else:
         raise Exception('Unknown dataset. The following datasets are supported: Cora, Citeseer, PubMed, '
-                        'OGBN-Products, OGBN-Arxiv, Reddit2 and FacebookPagePage. For more information use the --help '
-                        'option.')
+                        'OGBN-Arxiv, Reddit2 and FacebookPagePage. For more information use the --help option.')
     print('DEBUG: Finished creating dataset')
     adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
 
@@ -125,7 +124,7 @@ def load_dataset(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     print('DEBUG: Finished converting to pytorch')
     if cuda:
         features = features.cuda()
-        if dataset_str not in ['reddit2', 'ogbn-products', 'ogbn-arxiv']:
+        if dataset_str not in ['reddit2', 'ogbn-arxiv']:
             adj = adj.cuda()
         labels = labels.cuda()
         idx_train = idx_train.cuda()
