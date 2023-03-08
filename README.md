@@ -5,9 +5,24 @@
 PyTorch official implementation of *Graph-MLP: Node Classification without Message Passing in Graph*.
 For details on the original Graph-MLP, please refer to the paper: https://arxiv.org/abs/2106.04051 
 
-<img src="pipeline.png" width="60%" height="60%">
+![Graph-MLP pipeline](./images/pipeline.png)
 
-<img src="result.png" width="60%" height="60%">
+![Graph-MLP results](./images/result.png)
+
+
+## Structure
+
+* **data**
+  * Contains the computed adjacency matrices and node degree values.
+* **dataset**
+  * Contains the raw and processed data of the used datasets.
+* **run-scripts**
+  * All run scripts (calc-adj-*.sh are used to calculate the adjacency matrix with out further running the Graph-MLP pipeline)
+* **train.py**
+  * Main Python file that manages Graph-MLP 
+* **sample.py**
+  * Sampling methods implemented by us
+
 
 ## Requirements
 
@@ -15,7 +30,7 @@ For details on the original Graph-MLP, please refer to the paper: https://arxiv.
   * Python **3.7**
 
 ## Installation
-First install PyTorch and PyTorch-Geometric (PyG).
+First, create a new virtual environment or use your global one and install PyTorch and PyTorch-Geometric (PyG).
 
 Install the correct **PyTorch** version for your system from [the official website](https://pytorch.org/get-started/locally/).
 Then install the corresponding **PyG** version (correct PyTorch version and same CUDA version) from [here](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html).
@@ -23,6 +38,16 @@ Then install the corresponding **PyG** version (correct PyTorch version and same
 After this is done install the remaining requirements from the `requirements.txt` by running:
 ```shell
 pip install -r requirements.txt
+```
+
+### WandB
+Our implementation uses [Weights & Biases](https://wandb.ai/site) to easily track your runs.
+To change the entity (personal or team account) and the project, change the variables at the top of [train.py](../train.py).
+To disable logging in a run, add the `--no-wandb` flag.
+
+To track runs you have to log in to WandB on your device. To do this activate the virtual environment and run 
+```
+wandb login
 ```
 
 ## Datasets
@@ -44,25 +69,48 @@ This is a list of datasets implemented in this extension. For the `--data` argum
 
 
 ## Samplers
-See [Sampling.md](Sampling.md).
+See [supplementary-information/Sampling.md](supplementary-information/Sampling.md).
 
 ## Usage
 
 ```
 ## cora
-python3 train.py --lr=0.001 --weight_decay=5e-3 --data=cora --alpha=10.0 --hidden=256 --batch_size=2000 --order=2 --tau=2
+python3 train.py --data=cora --epochs=400 --hidden=256 --dropout=0.6 --lr=0.001 --weight_decay=5e-3 --alpha=100.0 --batch_size=2000 --order=3 --tau=2 --sampler=random_batch
 
 ## citeseer
-python3 train.py --lr=0.001 --weight_decay=5e-3 --data=citeseer --alpha=1.0 --hidden=256 --batch_size=2000 --order=2 --tau=0.5
+python3 train.py --data=citeseer --epochs=400 --hidden=256 --dropout=0.6 --lr=0.01 --weight_decay=5e-3 --alpha=1.0 --batch_size=2000 --order=2 --tau=1 --sampler=random_batch
 
 ## pubmed
-python3 train.py --lr=0.1 --weight_decay=5e-3 --data=pubmed --alpha=100 --hidden=256 --batch_size=2000 --order=2 --tau=1
+python3 train.py --data=pubmed --epochs=400 --hidden=256 --dropout=0.6 --lr=0.001 --weight_decay=5e-3 --alpha=1.0 --batch_size=3000 --order=3 --tau=2 --sampler=random_batch
+
+## FacebookPagePage
+python3 train.py --data=facebook --epochs=400 --hidden=256 --dropout=0.6 --lr=0.001 --weight_decay=5e-4 --alpha=1.0 --batch_size=2000 --order=4 --tau=0.5 --sampler=random_batch
+
+## ogbn-arxiv
+python3 train.py --data=ogbn-arxiv --epochs=400 --hidden=2048 --dropout=0.15 --lr=0.001 --weight_decay=0 --alpha=30.0 --batch_size=7000 --order=3 --tau=15 --sampler=random_batch
+
+## Reddit2
+python3 train.py --data=reddit2 --epochs=400 --hidden=2048 --dropout=0.15 --lr=0.001 --weight_decay=0 --alpha=30.0 --batch_size=7000 --order=2 --tau=15 --sampler=random_batch
 ```
 or
 
-```bash run.sh```
+```
+## Run all samplers on <dataset> ('cora', 'citeseer', 'pubmed', 'facebook')
+bash run.sh <dataset>
+```
 
-Please check our experimental results in log.txt. When new experiment is finished, the new result will also be appended to log.txt.
+```
+## Run <sampler> on ogbn-arxiv, see supplementary-information/Sampling.md
+bash run-arxiv.sh <sampler>
+```
+```
+## Run <sampler> on Reddit2, see supplementary-information/Sampling.md
+bash run-reddit.sh <sampler>
+```
+
+When new experiment is finished, the new result will also be appended to log.txt.
+
+We also provide a tutorial to run our experiment on the [BwUniCluster2.0](https://www.scc.kit.edu/en/services/bwUniCluster_2.0.php) (see [Unicluster.md](supplementary-information/Unicluster.md)). The run scripts mentioned above also contain the necessary slurm definitions.
 
 ## Cite
 

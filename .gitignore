@@ -130,9 +130,8 @@ dmypy.json
 
 
 .idea/
-# Raw datasets
-dataset/
-
-# Saved adjacency matrices and node degrees
-adj_label*.pt
-degree_*.npy
+# Raw datasets, adjacency matrices and node degrees
+dataset/*
+!dataset/.keep
+data/*
+!data/.keep
