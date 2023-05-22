@@ -5,6 +5,8 @@
 PyTorch official implementation of *Graph-MLP: Node Classification without Message Passing in Graph*.
 For details on the original Graph-MLP, please refer to the paper: https://arxiv.org/abs/2106.04051 
 
+You can read our [report](./Graph_MLP_Sampling.pdf) for a thorough explanation of our findings.
+
 ![Graph-MLP pipeline](./images/pipeline.png)
 
 ![Graph-MLP results](./images/result.png)
